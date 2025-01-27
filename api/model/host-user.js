@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const hostuserSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
     profileImg: { type: String, default: '' },
-    fullName: { type: String, required: true },
+    fullName: { type: String },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true, minlength: [6, 'Password length should be more than 6'] },
     phoneNumber: { type: String ,default: ''},
