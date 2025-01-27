@@ -13,13 +13,13 @@ const FILE_TYPE_MAP = {
     'image/png': 'png',
     'image/jpeg': 'jpeg',
     'image/jpg': 'jpg'
-}; 
+};
 
 const uploadDir = 'public/profilepic';
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
-
+0
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         const isValid = FILE_TYPE_MAP[file.mimetype];
@@ -59,6 +59,22 @@ router.get('/all', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+router.get('/:id', checkAuth, async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const user = await User.findById(userId).select('-password'); 
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json(user);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 router.post('/signup', uploadOptions.single('image'), async (req, res) => {
     try {
         const existingUser = await User.findOne({ email: req.body.email });
@@ -99,12 +115,11 @@ router.post('/signup', uploadOptions.single('image'), async (req, res) => {
         });
 
         const result = await user.save();
-        res.status(200).json({ new_user: result });
+        res.status(200).json({ message: 'User registered successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 // ✅ LOGIN
 router.post('/login', async (req, res) => {
@@ -128,31 +143,30 @@ router.post('/login', async (req, res) => {
         );
 
         res.status(200).json({
-            email: user.email,
-            userId: user.userId,
+            // email: user.email,
+            // userId: user.userId,
             _id: user._id,
             token: token,
-            name: user.name,
-            phoneNumber: user.phoneNumber,
-            dateOfBirth: user.dateOfBirth,
-            gender: user.gender,
-            address: user.address,
-            profileImg: user.profileImg,
-            city: user.city,
-            state: user.state,
-            country: user.country,
-            pincode: user.pincode,
-            pinhigestEducationcode: user.higestEducation,
-            skills: user.skills,
-            workExperience: user.workExperience,
-            role: user.role,
+            // name: user.name,
+            // phoneNumber: user.phoneNumber,
+            // dateOfBirth: user.dateOfBirth,
+            // gender: user.gender,
+            // address: user.address,
+            // profileImg: user.profileImg,
+            // city: user.city,
+            // state: user.state,
+            // country: user.country,
+            // pincode: user.pincode,
+            // pinhigestEducationcode: user.higestEducation,
+            // skills: user.skills,
+            // workExperience: user.workExperience,
+            // role: user.role,
         });
 
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 router.put('/update/:id', uploadOptions.single('image'), checkAuth, async (req, res) => {
     try {
@@ -180,7 +194,7 @@ router.put('/update/:id', uploadOptions.single('image'), checkAuth, async (req, 
             role: req.body.role || existingUser.role,
         };
 
-        
+
         if (req.file) {
             const fileName = req.file.filename;
             const basePath = `${req.protocol}://${req.get('host')}/public/profilepic/`;
@@ -206,7 +220,7 @@ router.delete('/delete/:id', checkAuth, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-       
+
         if (user.profileImg) {
             const filePath = `public/profilepic/${user.profileImg.split('/').pop()}`;
             if (fs.existsSync(filePath)) {

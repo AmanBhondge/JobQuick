@@ -7,6 +7,7 @@ const cors = require('cors');
 const path = require('path');
 
 const userRoute = require('./api/routes/user');
+const atsRoute = require('./api/routes/ats-score-checker');
 
 
 const { MONGO_URI } = require('./config');
@@ -30,8 +31,10 @@ app.use(express.json());
 app.use(morgan('tiny'));
 
 app.use('/public/profilepic', express.static(path.join(__dirname, 'public', 'profilepic')));
+app.use('/public/resumes', express.static(path.join(__dirname, 'public', 'resumes')));
 
 app.use('/user', userRoute);
+app.use('/ats', atsRoute);
 
 
 
