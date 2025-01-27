@@ -6,8 +6,10 @@ const morgan = require('morgan');
 const cors = require('cors');
 const path = require('path');
 
-const userRoute = require('./api/routes/user');
+const seekUserRoute = require('./api/routes/seek-user');
+const hostUserRoute = require('./api/routes/host-user');
 const atsRoute = require('./api/routes/ats-score-checker');
+const categoriesRoute = require('./api/routes/categories');
 
 
 const { MONGO_URI } = require('./config');
@@ -33,8 +35,10 @@ app.use(morgan('tiny'));
 app.use('/public/profilepic', express.static(path.join(__dirname, 'public', 'profilepic')));
 app.use('/public/resumes', express.static(path.join(__dirname, 'public', 'resumes')));
 
-app.use('/user', userRoute);
+app.use('/seekuser', seekUserRoute);
+app.use('/hostuser', hostUserRoute);
 app.use('/ats', atsRoute);
+app.use('/categories', categoriesRoute);
 
 
 
