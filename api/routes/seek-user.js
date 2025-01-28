@@ -56,47 +56,48 @@ router.get('/:id', checkAuth, async (req, res) => {
     }
 });
 
-// 🔹 User Signup
 router.post('/signup', uploadOptions.single('image'), async (req, res) => {
     try {
+
+        if (!req.body.email || !req.body.password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+
         const existingUser = await SeekUser.findOne({ email: req.body.email });
         if (existingUser) return res.status(409).json({ message: 'Email already exists' });
 
         const hash = await bcrypt.hash(req.body.password, 10);
 
-        let profileImg = '';
-        if (req.file) {
-            const basePath = `${req.protocol}://${req.get('host')}/public/profilepic/`;
-            profileImg = `${basePath}${req.file.filename}`;
-        }
+        let profileImg = req.file ? `${req.protocol}://${req.get('host')}/public/profilepic/${req.file.filename}` : '';
 
         const user = new SeekUser({
             _id: new mongoose.Types.ObjectId(),
-            fullName: req.body.fullName,
+            fullName: req.body.fullName || '',
             email: req.body.email,
             password: hash,
-            phoneNumber: req.body.phoneNumber,
-            dateOfBirth: req.body.dateOfBirth,
-            gender: req.body.gender,
-            address: req.body.address,
-            city: req.body.city,
-            state: req.body.state,
-            country: req.body.country,
-            pincode: req.body.pincode,
+            phoneNumber: req.body.phoneNumber || '',
+            dateOfBirth: req.body.dateOfBirth || '',
+            gender: req.body.gender || '',
+            address: req.body.address || '',
+            city: req.body.city || '',
+            state: req.body.state || '',
+            country: req.body.country || '',
+            pincode: req.body.pincode || '',
             profileImg: profileImg,
-            skills: req.body.skills,
-            education: req.body.education,
-            workExperience: req.body.workExperience,
-
+            skills: req.body.skills || '',
+            education: req.body.education || [],
+            workExperience: req.body.workExperience || [],
         });
 
         await user.save();
         res.status(201).json({ message: 'User registered successfully' });
 
     } catch (err) {
+        console.error('Signup Error:', err);
         res.status(500).json({ error: err.message });
     }
 });
+
 
 // 🔹 User Login
 router.post('/login', async (req, res) => {
