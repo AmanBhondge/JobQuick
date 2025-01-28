@@ -8,10 +8,5 @@ const categorySchema = mongoose.Schema({
     }
 });
 
-
-categorySchema.set('toJSON', {
-    virtuals: true,
-});
-
 const Category = mongoose.model('Category', categorySchema);
 module.exports = Category;

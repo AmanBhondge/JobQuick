@@ -10,6 +10,7 @@ const seekUserRoute = require('./api/routes/seek-user');
 const hostUserRoute = require('./api/routes/host-user');
 const atsRoute = require('./api/routes/ats-score-checker');
 const categoriesRoute = require('./api/routes/categories');
+const jobRoute = require('./api/routes/jobs');
 
 
 const { MONGO_URI } = require('./config');
@@ -39,6 +40,7 @@ app.use('/seekuser', seekUserRoute);
 app.use('/hostuser', hostUserRoute);
 app.use('/ats', atsRoute);
 app.use('/categories', categoriesRoute);
+app.use('/job', jobRoute);
 
 
 

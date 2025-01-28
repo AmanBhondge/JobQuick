@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const jobSchema = mongoose.Schema({
+    profileImg: { type: String, default: '' },
     companyName: {
         type: String,
         required: true,
@@ -82,13 +83,4 @@ const jobSchema = mongoose.Schema({
 });
 
 
-jobSchema.virtual('id').get(function () {
-    return this._id.toHexString();
-});
-
-jobSchema.set('toJSON', {
-    virtuals: true,
-});
-
-
-exports.Job = mongoose.model('Job', jobSchema);
+module.exports = mongoose.model('Job', jobSchema);

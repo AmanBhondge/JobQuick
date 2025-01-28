@@ -1,55 +1,84 @@
-const { Job } = require('../model/job');
-const express = require('express');
-const { Category } = require('../model/category');
-const { HostUser } = require('../model/host-user');
-const router = express.Router();
-const mongoose = require('mongoose');
-const checkAuth = require('../middleware/check-auth');
+const Job = require("../model/job");
+const Category = require("../model/category");
+const HostUser = require("../model/host-user");
+const express = require("express");
+const mongoose = require("mongoose");
+const multer = require("multer");
+const path = require("path");
+const checkAuth = require("../middleware/check-auth");
 
-// Get all jobs with full user object in createdBy
-router.get(`/`, async (req, res) => {
+const router = express.Router();
+
+// Multer storage config
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, "public/profilepic");
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
+    },
+});
+
+const upload = multer({ storage: storage });
+
+// Get all jobs
+router.get("/", async (req, res) => {
     try {
         let filter = {};
         if (req.query.categories) {
-            filter = { category: req.query.categories.split(',') };
+            filter = { category: req.query.categories.split(",") };
         }
 
-        const jobList = await Job.find(filter)
-            .populate('category')
-            .populate('createdBy');
-        
+        const jobList = await Job.find(filter).populate("category").populate("createdBy");
         res.send(jobList);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Get a job by ID with full user object in createdBy
-router.get(`/:id`,checkAuth, async (req, res) => {
+// Get a job by ID
+router.get("/:id", checkAuth, async (req, res) => {
     try {
-        const job = await Job.findById(req.params.id)
-            .populate('category')
-            .populate('createdBy');
-        
-        if (!job) {
-            return res.status(404).json({ success: false, message: 'Job not found!' });
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ success: false, message: "Invalid Job ID format" });
         }
+
+        const job = await Job.findById(req.params.id).populate("category").populate("createdBy");
+
+        if (!job) {
+            return res.status(404).json({ success: false, message: "Job not found!" });
+        }
+
         res.send(job);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Create a new job
-router.post(`/`,checkAuth, async (req, res) => {
+// Create a new job with image upload
+// POST Request to Create a Job
+router.post("/", upload.single("profileImg"), async (req, res) => {
     try {
+        // Validate category ID
+        if (!req.body.category || !mongoose.isValidObjectId(req.body.category)) {
+            return res.status(400).json({ success: false, message: "Invalid or missing Category ID" });
+        }
+
+        // Validate createdBy ID
+        if (!req.body.createdBy || !mongoose.isValidObjectId(req.body.createdBy)) {
+            return res.status(400).json({ success: false, message: "Invalid or missing CreatedBy ID" });
+        }
+
+        // Fetch category and hostUser
         const category = await Category.findById(req.body.category);
-        if (!category) return res.status(400).send('Invalid Category');
+        if (!category) return res.status(400).json({ success: false, message: "Category not found" });
 
         const hostUser = await HostUser.findById(req.body.createdBy);
-        if (!hostUser) return res.status(400).send('Invalid HostUser');
+        if (!hostUser) return res.status(400).json({ success: false, message: "HostUser not found" });
 
-        let job = new Job({
+        // Create new job
+        const job = new Job({
+            _id: new mongoose.Types.ObjectId(),
             companyName: req.body.companyName,
             fullName: req.body.fullName,
             phoneNo: req.body.phoneNo,
@@ -66,33 +95,38 @@ router.post(`/`,checkAuth, async (req, res) => {
             minPackage: req.body.minPackage,
             maxPackage: req.body.maxPackage,
             category: req.body.category,
-            createdBy: req.body.createdBy
+            createdBy: req.body.createdBy,
+            profileImg: req.file ? `/public/profilepic/${req.file.filename}` : "",
         });
 
-        job = await job.save();
-        res.send(job);
+        // Save job in the database
+        const savedJob = await job.save();
+        res.status(201).json({ success: true, message: "Job created successfully", job: savedJob });
+
     } catch (error) {
-        res.status(500).send({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Update a job
-router.put('/:id',checkAuth, async (req, res) => {
+// Update a job with image upload
+router.put("/:id", checkAuth, upload.single("profileImg"), async (req, res) => {
     try {
         if (!mongoose.isValidObjectId(req.params.id)) {
-            return res.status(400).send('Invalid Job Id');
+            return res.status(400).send("Invalid Job ID");
         }
 
         const existingJob = await Job.findById(req.params.id);
         if (!existingJob) {
-            return res.status(404).send('Job not found!');
+            return res.status(404).send("Job not found!");
         }
 
-        const category = await Category.findById(req.body.category);
-        if (!category) return res.status(400).send('Invalid Category');
+        if (req.body.category && !mongoose.isValidObjectId(req.body.category)) {
+            return res.status(400).send("Invalid Category ID");
+        }
 
-        const hostUser = await HostUser.findById(req.body.createdBy);
-        if (!hostUser) return res.status(400).send('Invalid HostUser');
+        if (req.body.createdBy && !mongoose.isValidObjectId(req.body.createdBy)) {
+            return res.status(400).send("Invalid CreatedBy ID");
+        }
 
         const job = await Job.findByIdAndUpdate(
             req.params.id,
@@ -113,7 +147,8 @@ router.put('/:id',checkAuth, async (req, res) => {
                 minPackage: req.body.minPackage || existingJob.minPackage,
                 maxPackage: req.body.maxPackage || existingJob.maxPackage,
                 category: req.body.category || existingJob.category,
-                createdBy: req.body.createdBy || existingJob.createdBy
+                createdBy: req.body.createdBy || existingJob.createdBy,
+                profileImg: req.file ? `/public/profilepic/${req.file.filename}` : existingJob.profileImg,
             },
             { new: true }
         );
@@ -125,13 +160,18 @@ router.put('/:id',checkAuth, async (req, res) => {
 });
 
 // Delete a job
-router.delete('/:id',checkAuth, async (req, res) => {
+router.delete("/:id", checkAuth, async (req, res) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).send("Invalid Job ID");
+        }
+
         const job = await Job.findByIdAndDelete(req.params.id);
         if (!job) {
             return res.status(404).json({ success: false, message: "Job not found!" });
         }
-        res.status(200).json({ success: true, message: 'The Job is deleted!' });
+
+        res.status(200).json({ success: true, message: "The Job is deleted!" });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
