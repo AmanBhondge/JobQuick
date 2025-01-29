@@ -1,11 +1,12 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Category = require('../model/category');
+const checkAuth = require("../middleware/check-auth");
 
 const router = express.Router();
 
 // Get all categories
-router.get('/', async (req, res) => {
+router.get('/',checkAuth, async (req, res) => {
     try {
         const categoryList = await Category.find();
         res.status(200).json({ success: true, data: categoryList });

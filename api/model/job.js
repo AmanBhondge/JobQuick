@@ -6,6 +6,14 @@ const jobSchema = mongoose.Schema({
         type: String,
         required: true,
     },
+    companyEmail: {
+        type: String,
+        required: true,
+    },
+    companyURL: {
+        type: String,
+        required: true,
+    },
     fullName: {
         type: String,
         required: true,
@@ -46,7 +54,11 @@ const jobSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    description: {
+    companyDescription: {
+        type: String,
+        required: true
+    },
+    jobDescription: {
         type: String,
         required: true
     },
@@ -78,6 +90,16 @@ const jobSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'HostUser',
         required: true
+    },
+    skills: {
+        type: [String],
+        required: true,
+        validate: {
+            validator: function (skills) {
+                return skills.length > 0; // Ensure at least one skill is provided
+            },
+            message: 'At least one skill is required.'
+        }
     }
 
 });
