@@ -63,15 +63,11 @@ router.get("/:id", checkAuth, async (req, res) => {
 // ✅ Create a New Job
 router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
     try {
-        const { companyName, companyEmail, companyURL, fullName, phoneNo, numOfEmployee, title, jobType, location, workType, minEducation, experience, interviewType, companyDescription, jobDescription, noOfOpeaning, minPackage, maxPackage, category, createdBy, skills } = req.body;
+        const { companyName, companyEmail, companyURL, fullName, phoneNo, numOfEmployee, title, jobType, location, workType, minEducation, experience, interviewType, companyDescription, jobDescription, noOfOpeaning, minPackage, maxPackage, categoryTitle, createdBy, skills } = req.body;
 
         // 🔹 Validate required fields
-        if (!companyName || !companyEmail || !companyURL || !fullName || !phoneNo || !title || !jobType || !location || !workType || !minEducation || !experience || !interviewType || !companyDescription || !jobDescription || !noOfOpeaning || !minPackage || !maxPackage || !category || !createdBy || !skills) {
+        if (!companyName || !companyEmail || !companyURL || !fullName || !phoneNo || !title || !jobType || !location || !workType || !minEducation || !experience || !interviewType || !companyDescription || !jobDescription || !noOfOpeaning || !minPackage || !maxPackage || !categoryTitle || !createdBy || !skills) {
             return res.status(400).json({ success: false, message: "All fields are required!" });
-        }
-
-        if (!mongoose.isValidObjectId(category)) {
-            return res.status(400).json({ success: false, message: "Invalid category ID" });
         }
 
         if (!mongoose.isValidObjectId(createdBy)) {
@@ -84,8 +80,8 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
             return res.status(400).json({ success: false, message: "At least one skill is required" });
         }
 
-        // 🔹 Validate category existence
-        const categoryExists = await Category.findById(category);
+        // 🔹 Find Category by Title
+        const categoryExists = await Category.findOne({ title: categoryTitle });
         if (!categoryExists) return res.status(400).json({ success: false, message: "Category not found" });
 
         // 🔹 Validate host user existence
@@ -113,7 +109,7 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
             noOfOpeaning,
             minPackage,
             maxPackage,
-            category,
+            category: categoryExists._id, // ✅ Using category ID from title lookup
             createdBy,
             skills: skillArray,
             profileImg: req.file ? `/public/profilepic/${req.file.filename}` : "",
@@ -126,6 +122,7 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 
 // ✅ Update a Job
 router.put("/:id", checkAuth, upload.single("profileImg"), async (req, res) => {
