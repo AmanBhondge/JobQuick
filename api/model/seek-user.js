@@ -14,7 +14,7 @@ const seekuserSchema = mongoose.Schema({
     state: { type: String, default: '' },
     country: { type: String, default: '' },
     pincode: { type: String, default: '' },
-    skills: { type: [String], required: true },
+    skills: { type: [String]},
 
     education: [
         {
