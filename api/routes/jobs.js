@@ -57,11 +57,11 @@ router.get("/:id", checkAuth, async (req, res) => {
 
 // Create a new job with image upload
 // POST Request to Create a Job
-router.post("/", upload.single("profileImg"), async (req, res) => {
+router.post("/",checkAuth, upload.single("profileImg"), async (req, res) => {
     try {
-        // Validate category ID
-        if (!req.body.category || !mongoose.isValidObjectId(req.body.category)) {
-            return res.status(400).json({ success: false, message: "Invalid or missing Category ID" });
+        // Validate category title
+        if (!req.body.categoryTitle) {
+            return res.status(400).json({ success: false, message: "Missing Category Title" });
         }
 
         // Validate createdBy ID
@@ -69,10 +69,11 @@ router.post("/", upload.single("profileImg"), async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid or missing CreatedBy ID" });
         }
 
-        // Fetch category and hostUser
-        const category = await Category.findById(req.body.category);
+        // Fetch category by title
+        const category = await Category.findOne({ title: req.body.categoryTitle });
         if (!category) return res.status(400).json({ success: false, message: "Category not found" });
 
+        // Fetch hostUser
         const hostUser = await HostUser.findById(req.body.createdBy);
         if (!hostUser) return res.status(400).json({ success: false, message: "HostUser not found" });
 
@@ -94,7 +95,7 @@ router.post("/", upload.single("profileImg"), async (req, res) => {
             noOfOpeaning: req.body.noOfOpeaning,
             minPackage: req.body.minPackage,
             maxPackage: req.body.maxPackage,
-            category: req.body.category,
+            category: category._id, // Use the fetched category's ID
             createdBy: req.body.createdBy,
             profileImg: req.file ? `/public/profilepic/${req.file.filename}` : "",
         });
@@ -107,7 +108,6 @@ router.post("/", upload.single("profileImg"), async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-
 // Update a job with image upload
 router.put("/:id", checkAuth, upload.single("profileImg"), async (req, res) => {
     try {
