@@ -109,7 +109,7 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
             noOfOpeaning,
             minPackage,
             maxPackage,
-            category: categoryExists._id, // ✅ Using category ID from title lookup
+            category: categoryExists._id,
             createdBy,
             skills: skillArray,
             profileImg: req.file ? `/public/profilepic/${req.file.filename}` : "",
