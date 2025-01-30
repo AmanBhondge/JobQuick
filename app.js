@@ -22,7 +22,7 @@ const connectDB = async () => {
         console.log("✅ Connected to MongoDB");
     } catch (err) {
         console.error("❌ MongoDB Connection Failed:", err.message);
-        process.exit(1); 
+        process.exit(1);
     }
 };
 
@@ -30,7 +30,7 @@ connectDB();
 
 // Middleware
 app.use(cors());
-app.use(express.json());  
+app.use(express.json());
 app.use(morgan('tiny'));
 
 app.use('/public/profilepic', express.static(path.join(__dirname, 'public', 'profilepic')));

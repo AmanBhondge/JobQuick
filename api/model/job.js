@@ -96,7 +96,7 @@ const jobSchema = mongoose.Schema({
         required: true,
         validate: {
             validator: function (skills) {
-                return skills.length > 0; // Ensure at least one skill is provided
+                return skills.length > 0; 
             },
             message: 'At least one skill is required.'
         }

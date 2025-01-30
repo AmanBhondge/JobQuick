@@ -37,7 +37,6 @@ const storage = multer.diskStorage({
 
 const uploadOptions = multer({ storage: storage });
 
-// Get All Users
 router.get('/all', async (req, res) => {
     try {
         const users = await SeekUser.find().select('-password');
@@ -47,7 +46,6 @@ router.get('/all', async (req, res) => {
     }
 });
 
-// Get User by ID
 router.get('/:id', checkAuth, async (req, res) => {
     try {
         const user = await SeekUser.findById(req.params.id).select('-password');
@@ -58,7 +56,6 @@ router.get('/:id', checkAuth, async (req, res) => {
     }
 });
 
-// User Signup
 router.post('/signup', uploadOptions.single('image'), async (req, res) => {
     try {
         if (!req.body.email || !req.body.password) {
@@ -97,7 +94,6 @@ router.post('/signup', uploadOptions.single('image'), async (req, res) => {
     }
 });
 
-// User Login
 router.post('/login', async (req, res) => {
     try {
         const user = await SeekUser.findOne({ email: req.body.email.trim().toLowerCase() });
@@ -114,7 +110,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Update User
 router.put('/update/:id', uploadOptions.single('image'), checkAuth, async (req, res) => {
     try {
         const existingUser = await SeekUser.findById(req.params.id);
@@ -147,7 +142,6 @@ router.put('/update/:id', uploadOptions.single('image'), checkAuth, async (req, 
     }
 });
 
-// Delete User
 router.delete('/delete/:id', checkAuth, async (req, res) => {
     try {
         const user = await SeekUser.findById(req.params.id);

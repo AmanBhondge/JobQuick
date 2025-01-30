@@ -5,8 +5,7 @@ const checkAuth = require("../middleware/check-auth");
 
 const router = express.Router();
 
-// Get all categories
-router.get('/',checkAuth, async (req, res) => {
+router.get('/', checkAuth, async (req, res) => {
     try {
         const categoryList = await Category.find();
         res.status(200).json({ success: true, data: categoryList });
@@ -15,7 +14,6 @@ router.get('/',checkAuth, async (req, res) => {
     }
 });
 
-// Get category by ID
 router.get('/:id', async (req, res) => {
     try {
         if (!mongoose.isValidObjectId(req.params.id)) {
@@ -33,14 +31,12 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Create a new category
 router.post('/', async (req, res) => {
     try {
         if (!req.body.title) {
             return res.status(400).json({ success: false, message: 'Title is required' });
         }
 
-        // Check if category already exists
         const existingCategory = await Category.findOne({ title: req.body.title });
         if (existingCategory) {
             return res.status(409).json({ success: false, message: 'Category with this title already exists!' });
@@ -57,7 +53,6 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Update a category
 router.put('/:id', async (req, res) => {
     try {
         if (!mongoose.isValidObjectId(req.params.id)) {
@@ -80,7 +75,6 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// Delete a category
 router.delete('/:id', async (req, res) => {
     try {
         if (!mongoose.isValidObjectId(req.params.id)) {
