@@ -20,22 +20,18 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
-
-// ✅ Get All Jobs
-router.get("/", checkAuth, async (req, res) => {
+router.get("/filter", checkAuth, async (req, res) => {
     try {
         let filter = {};
 
-        // 🔹 Normalize and Match Category (Supports multiple categories)
+        // 🔹 Filter by Category
         if (req.query.categories && req.query.categories.trim() !== "") {
             const categoryTitles = req.query.categories.split(",").map(title => 
-                title.replace(/\s+/g, "").toLowerCase() // Remove spaces & lowercase
+                title.trim().toLowerCase()
             );
 
             const categories = await Category.find({
-                title: { 
-                    $in: categoryTitles.map(title => new RegExp(`^${title}$`, "i")) 
-                }
+                title: { $in: categoryTitles }
             });
 
             if (categories.length > 0) {
@@ -43,40 +39,60 @@ router.get("/", checkAuth, async (req, res) => {
             }
         }
 
-        // 🔹 Normalize and Match Job Title
+        // 🔹 Filter by Job Title
         if (req.query.title && req.query.title.trim() !== "") {
-            const normalizedTitle = req.query.title.replace(/\s+/g, "").toLowerCase();
+            const normalizedTitle = req.query.title.trim().toLowerCase();
             filter.title = { $regex: new RegExp(normalizedTitle, "i") };
         }
 
-        // 🔹 Normalize and Match Job Type
+        // 🔹 Filter by Job Type
         if (req.query.jobType && req.query.jobType.trim() !== "") {
-            const normalizedJobType = req.query.jobType.replace(/\s+/g, "").toLowerCase();
+            const normalizedJobType = req.query.jobType.trim().toLowerCase();
             filter.jobType = { $regex: new RegExp(normalizedJobType, "i") };
         }
 
-        // 🔹 Normalize and Match Work Type
+        // 🔹 Filter by Work Type
         if (req.query.workType && req.query.workType.trim() !== "") {
-            const normalizedWorkType = req.query.workType.replace(/\s+/g, "").toLowerCase();
+            const normalizedWorkType = req.query.workType.trim().toLowerCase();
             filter.workType = { $regex: new RegExp(normalizedWorkType, "i") };
         }
 
-        // 🔹 Normalize and Match Experience
+        // 🔹 Filter by Experience
         if (req.query.experience && req.query.experience.trim() !== "") {
-            const normalizedExperience = req.query.experience.replace(/\s+/g, "").toLowerCase();
+            const normalizedExperience = req.query.experience.trim().toLowerCase();
             filter.experience = { $regex: new RegExp(normalizedExperience, "i") };
         }
 
-        // 🔹 Fetch Jobs with Filters Applied
+        // 🔹 Pagination
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // 🔹 Fetch Jobs with Filters and Pagination
         const jobList = await Job.find(filter)
             .populate("category", "title")
-            .populate("createdBy", "fullName email");
+            .populate("createdBy", "fullName email")
+            .skip(skip)
+            .limit(limit);
 
-        res.status(200).json({ success: true, jobs: jobList });
+        // 🔹 Get Total Count for Pagination
+        const totalJobs = await Job.countDocuments(filter);
+
+        res.status(200).json({ 
+            success: true, 
+            jobs: jobList,
+            pagination: {
+                total: totalJobs,
+                page: page,
+                limit: limit,
+                totalPages: Math.ceil(totalJobs / limit)
+            }
+        });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 
 // ✅ Get Job by ID
 router.get("/:id", checkAuth, async (req, res) => {

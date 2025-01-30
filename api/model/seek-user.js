@@ -21,8 +21,8 @@ const seekuserSchema = mongoose.Schema({
             degree: { type: String },
             institution: { type: String },
             specialisation: { type: String },
-            startYear: { type: Number },
-            endYear: { type: Number }
+            startYear: { type: Date },
+            endYear: { type: Date }
         }
     ],
 
