@@ -18,6 +18,9 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
+
+                                     //Filter Section
+
 router.get("/filter", checkAuth, async (req, res) => {
     try {
         let filter = {};
@@ -73,6 +76,43 @@ router.get("/filter", checkAuth, async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+                                 // GET jobs by createdBy (User ID)
+router.get("/by-creator/:creatorId", checkAuth, async (req, res) => {
+    try {
+        const { creatorId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(creatorId)) {
+            return res.status(400).json({ success: false, message: "Invalid creatorId" });
+        }
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const jobs = await Job.find({ createdBy: creatorId })
+            .populate("category", "title")
+            .populate("createdBy", "fullName email")
+            .skip(skip)
+            .limit(limit);
+
+        const totalJobs = await Job.countDocuments({ createdBy: creatorId });
+
+        res.status(200).json({
+            success: true,
+            jobs,
+            pagination: {
+                total: totalJobs,
+                page,
+                limit,
+                totalPages: Math.ceil(totalJobs / limit),
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 
 router.get("/:id", checkAuth, async (req, res) => {
     try {
