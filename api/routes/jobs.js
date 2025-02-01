@@ -180,7 +180,7 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
             category: categoryExists._id,
             createdBy,
             skills: skillArray,
-            profileImg: req.file ? `/public/profilepic/${req.file.filename}` : "",
+            profileImg: req.file ? `${req.protocol}://${req.get('host')}/public/profilepic/${req.file.filename}` : "",
         });
 
         const savedJob = await job.save();
@@ -190,50 +190,6 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
     }
 });
 
-router.put("/:id", checkAuth, upload.single("profileImg"), async (req, res) => {
-    try {
-        const jobId = req.params.id;
-
-        if (!mongoose.isValidObjectId(jobId)) {
-            return res.status(400).json({ success: false, message: "Invalid Job ID format" });
-        }
-
-        let job = await Job.findById(jobId);
-        if (!job) {
-            return res.status(404).json({ success: false, message: "Job not found!" });
-        }
-
-        const updatedData = {
-            companyName: req.body.companyName || job.companyName,
-            companyEmail: req.body.companyEmail || job.companyEmail,
-            companyURL: req.body.companyURL || job.companyURL,
-            fullName: req.body.fullName || job.fullName,
-            phoneNo: req.body.phoneNo || job.phoneNo,
-            numOfEmployee: req.body.numOfEmployee || job.numOfEmployee,
-            title: req.body.title || job.title,
-            jobType: req.body.jobType || job.jobType,
-            location: req.body.location || job.location,
-            workType: req.body.workType || job.workType,
-            minEducation: req.body.minEducation || job.minEducation,
-            experience: req.body.experience || job.experience,
-            interviewType: req.body.interviewType || job.interviewType,
-            companyDescription: req.body.companyDescription || job.companyDescription,
-            jobDescription: req.body.jobDescription || job.jobDescription,
-            noOfOpeaning: req.body.noOfOpeaning || job.noOfOpeaning,
-            minPackage: req.body.minPackage || job.minPackage,
-            maxPackage: req.body.maxPackage || job.maxPackage,
-            category: req.body.category || job.category,
-            skills: req.body.skills ? (Array.isArray(req.body.skills) ? req.body.skills : req.body.skills.split(",").map(s => s.trim())) : job.skills,
-            profileImg: req.file ? `/public/profilepic/${req.file.filename}` : job.profileImg,
-        };
-
-        job = await Job.findByIdAndUpdate(jobId, updatedData, { new: true });
-
-        res.status(200).json({ success: true, message: "Job updated successfully", job });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
 
 router.delete("/:id", checkAuth, async (req, res) => {
     try {

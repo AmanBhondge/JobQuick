@@ -80,7 +80,7 @@ router.post('/signup', uploadOptions.single('image'), async (req, res) => {
             state: req.body.state || '',
             country: req.body.country || '',
             pincode: req.body.pincode || '',
-            profileImg 
+            profileImg : profileImg ,
         });
 
         await user.save();
