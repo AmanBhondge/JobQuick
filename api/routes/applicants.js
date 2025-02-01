@@ -35,7 +35,24 @@ const upload = multer({
 // GET all applicants
 router.get('/', async (req, res) => {
     try {
-        const applicants = await Applicant.find().populate('jobId').populate('applicantId');
+        let filter = {};
+
+        if (req.query.jobId && mongoose.Types.ObjectId.isValid(req.query.jobId)) {
+            filter.jobId = req.query.jobId;
+        }
+
+        if (req.query.applicantId && mongoose.Types.ObjectId.isValid(req.query.applicantId)) {
+            filter.applicantId = req.query.applicantId;
+        }
+
+        if (req.query.shortListed !== undefined) {
+            filter.shortListed = req.query.shortListed === 'true'; 
+        }
+
+        const applicants = await Applicant.find(filter)
+            .populate('jobId')
+            .populate('applicantId');
+
         res.status(200).json(applicants);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -85,6 +102,30 @@ router.post('/', upload.single('resume'), async (req, res) => {
         res.status(201).json(newApplicant);
     } catch (err) {
         res.status(400).json({ message: err.message });
+    }
+});
+
+router.put('/shortlisted/:id', async (req, res) => {
+    try {
+        const { shortListed } = req.body;
+
+        if (typeof shortListed !== 'boolean') {
+            return res.status(400).json({ message: 'Invalid value for shortListed. Must be true or false.' });
+        }
+
+        const updatedApplicant = await Applicant.findByIdAndUpdate(
+            req.params.id,
+            { shortListed },
+            { new: true }
+        );
+
+        if (!updatedApplicant) {
+            return res.status(404).json({ message: 'Applicant not found' });
+        }
+
+        res.status(200).json(updatedApplicant);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 });
 

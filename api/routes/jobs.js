@@ -78,7 +78,7 @@ router.get("/filter", checkAuth, async (req, res) => {
 });
 
                                  // GET jobs by createdBy (User ID)
-router.get("/by-creator/:creatorId", checkAuth, async (req, res) => {
+router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
     try {
         const { creatorId } = req.params;
 

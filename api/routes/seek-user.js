@@ -81,7 +81,7 @@ router.post('/signup', uploadOptions.single('image'), async (req, res) => {
             state: req.body.state || '',
             country: req.body.country || '',
             pincode: req.body.pincode || '',
-            profileImg: profileImg,
+            profileImg : profileImg,
             skills: req.body.skills ? (Array.isArray(req.body.skills) ? req.body.skills : req.body.skills.split(',').map(s => s.trim())) : [],
             education: Array.isArray(req.body.education) ? req.body.education : [],
             workExperience: Array.isArray(req.body.workExperience) ? req.body.workExperience : [],
