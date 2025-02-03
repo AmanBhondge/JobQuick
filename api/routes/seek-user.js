@@ -41,6 +41,21 @@ const storage = (destination) =>
 const uploadProfilePic = multer({ storage: storage(profilePicDir) });
 const uploadResume = multer({ storage: storage(resumeDir) });
 
+// ✅ Get User by ID
+router.get('/:id', checkAuth, async (req, res) => {
+    try {
+        const user = await SeekUser.findById(req.params.id).select('-password'); // Exclude password
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json(user);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 // ✅ Signup Route (Accepts Profile Image & Resume)
 router.post('/signup', uploadProfilePic.single('profileImg'), uploadResume.single('resume'), async (req, res) => {
     try {
