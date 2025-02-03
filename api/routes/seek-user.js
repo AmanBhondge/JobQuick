@@ -115,22 +115,18 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign(
             { userId: user._id, email: user.email },
             process.env.JWT_SECRET,
-            { expiresIn: '7d' } // Token valid for 7 days
+            { expiresIn: '7d' } 
         );
-
-        // Exclude password from response
-        const { password: _, ...userData } = user.toObject();
 
         res.status(200).json({
             message: 'Login successful',
-            token,
-            user: userData
+            userId: user._id,  
+            token             
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 // ✅ Update User (Supports Resume & Profile Image)
 router.put('/update/:id', uploadProfilePic.single('profileImg'), uploadResume.single('resume'), checkAuth, async (req, res) => {
