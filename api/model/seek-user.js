@@ -15,25 +15,19 @@ const seekuserSchema = mongoose.Schema({
     country: { type: String, default: '' },
     pincode: { type: String, default: '' },
     skills: { type: [String]},
+    projectUrl: { type: String, default: '' },
+    summary: { type: String, default: '' },
+    resume: { type: String, default: '' },
+    eduDegree: { type: String, default: '' },
+    eduInstitution: { type: String, default: '' },
+    eduSpecialisation: { type: String, default: '' },
+    eduStartYear: { type: String, default: '' },
+    eduEndYear: { type: String, default: '' },
+    expCompany: { type: String, default: '' },
+    expPosition: { type: String, default: '' },
+    expStartYear: { type: String, default: '' },
+    expEndYear: { type: String, default: '' },
 
-    education: [
-        {
-            degree: { type: String },
-            institution: { type: String },
-            specialisation: { type: String },
-            startYear: { type: Date },
-            endYear: { type: Date }
-        }
-    ],
-
-    workExperience: [
-        {
-            company: { type: String },
-            position: { type: String },
-            startDate: { type: Date },
-            endDate: { type: Date }
-        }
-    ],
 });
 
 module.exports = mongoose.model('SeekUser', seekuserSchema);

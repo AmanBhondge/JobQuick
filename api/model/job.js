@@ -69,13 +69,11 @@ const jobSchema = mongoose.Schema({
     },
     minPackage: {
         type: String,
-        required: true,
-        
+        required: true, 
     },
     maxPackage: {
         type: String,
-        required: true,
-        
+        required: true, 
     },
     category: {
         type: mongoose.Schema.Types.ObjectId,
@@ -103,6 +101,5 @@ const jobSchema = mongoose.Schema({
     }
 
 });
-
 
 module.exports = mongoose.model('Job', jobSchema);

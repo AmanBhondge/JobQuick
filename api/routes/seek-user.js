@@ -12,51 +12,37 @@ const checkAuth = require('../middleware/check-auth');
 const FILE_TYPE_MAP = {
     'image/png': 'png',
     'image/jpeg': 'jpeg',
-    'image/jpg': 'jpg'
+    'image/jpg': 'jpg',
+    'application/pdf': 'pdf' // ✅ Added support for PDF files
 };
 
-const uploadDir = 'public/profilepic';
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Ensure upload directories exist
+const profilePicDir = 'public/profilepic';
+const resumeDir = 'public/resumes';
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const isValid = FILE_TYPE_MAP[file.mimetype];
-        if (!isValid) {
-            return cb(new Error('Invalid file type'), false);
+if (!fs.existsSync(profilePicDir)) fs.mkdirSync(profilePicDir, { recursive: true });
+if (!fs.existsSync(resumeDir)) fs.mkdirSync(resumeDir, { recursive: true });
+
+// Multer Storage Configurations
+const storage = (destination) =>
+    multer.diskStorage({
+        destination: (req, file, cb) => {
+            const isValid = FILE_TYPE_MAP[file.mimetype];
+            if (!isValid) return cb(new Error('Invalid file type'), false);
+            cb(null, destination);
+        },
+        filename: (req, file, cb) => {
+            const fileName = file.originalname.split(' ').join('-');
+            const extension = FILE_TYPE_MAP[file.mimetype];
+            cb(null, `${fileName}-${Date.now()}.${extension}`);
         }
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const fileName = file.originalname.split(' ').join('-');
-        const extension = FILE_TYPE_MAP[file.mimetype];
-        cb(null, `${fileName}-${Date.now()}.${extension}`);
-    }
-});
+    });
 
-const uploadOptions = multer({ storage: storage });
+const uploadProfilePic = multer({ storage: storage(profilePicDir) });
+const uploadResume = multer({ storage: storage(resumeDir) });
 
-router.get('/all', async (req, res) => {
-    try {
-        const users = await SeekUser.find().select('-password');
-        res.status(200).json(users);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-router.get('/:id', checkAuth, async (req, res) => {
-    try {
-        const user = await SeekUser.findById(req.params.id).select('-password');
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.status(200).json(user);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-router.post('/signup', uploadOptions.single('image'), async (req, res) => {
+// ✅ Signup Route (Accepts Profile Image & Resume)
+router.post('/signup', uploadProfilePic.single('profileImg'), uploadResume.single('resume'), async (req, res) => {
     try {
         if (!req.body.email || !req.body.password) {
             return res.status(400).json({ message: 'Email and password are required' });
@@ -66,7 +52,8 @@ router.post('/signup', uploadOptions.single('image'), async (req, res) => {
         if (existingUser) return res.status(409).json({ message: 'Email already exists' });
 
         const hash = await bcrypt.hash(req.body.password, 10);
-        let profileImg = req.file ? `${req.protocol}://${req.get('host')}/public/profilepic/${req.file.filename}` : '';
+        const profileImg = req.file ? `${req.protocol}://${req.get('host')}/public/profilepic/${req.file.filename}` : '';
+        const resumePath = req.file ? `${req.protocol}://${req.get('host')}/public/resumes/${req.file.filename}` : '';
 
         const user = new SeekUser({
             _id: new mongoose.Types.ObjectId(),
@@ -81,10 +68,20 @@ router.post('/signup', uploadOptions.single('image'), async (req, res) => {
             state: req.body.state || '',
             country: req.body.country || '',
             pincode: req.body.pincode || '',
-            profileImg : profileImg,
+            profileImg: profileImg,
+            resume: resumePath, // ✅ Saving resume file path
             skills: req.body.skills ? (Array.isArray(req.body.skills) ? req.body.skills : req.body.skills.split(',').map(s => s.trim())) : [],
-            education: Array.isArray(req.body.education) ? req.body.education : [],
-            workExperience: Array.isArray(req.body.workExperience) ? req.body.workExperience : [],
+            projectUrl: req.body.projectUrl || '',
+            summary: req.body.summary || '',
+            eduDegree: req.body.eduDegree || '',
+            eduInstitution: req.body.eduInstitution || '',
+            eduSpecialisation: req.body.eduSpecialisation || '',
+            eduStartYear: req.body.eduStartYear || '',
+            eduEndYear: req.body.eduEndYear || '',
+            expCompany: req.body.expCompany || '',
+            expPosition: req.body.expPosition || '',
+            expStartYear: req.body.expStartYear || '',
+            expEndYear: req.body.expEndYear || '',
         });
 
         await user.save();
@@ -94,23 +91,8 @@ router.post('/signup', uploadOptions.single('image'), async (req, res) => {
     }
 });
 
-router.post('/login', async (req, res) => {
-    try {
-        const user = await SeekUser.findOne({ email: req.body.email.trim().toLowerCase() });
-        if (!user) return res.status(401).json({ message: 'User does not exist' });
-
-        const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
-        if (!isPasswordValid) return res.status(401).json({ message: 'Invalid password' });
-
-        const token = jwt.sign({ email: user.email, _id: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
-
-        res.status(200).json({ _id: user._id, token: token });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-router.put('/update/:id', uploadOptions.single('image'), checkAuth, async (req, res) => {
+// ✅ Update User (Supports Resume & Profile Image)
+router.put('/update/:id', uploadProfilePic.single('profileImg'), uploadResume.single('resume'), checkAuth, async (req, res) => {
     try {
         const existingUser = await SeekUser.findById(req.params.id);
         if (!existingUser) return res.status(404).json({ message: 'User not found' });
@@ -126,13 +108,25 @@ router.put('/update/:id', uploadOptions.single('image'), checkAuth, async (req, 
             country: req.body.country || existingUser.country,
             pincode: req.body.pincode || existingUser.pincode,
             skills: req.body.skills ? (Array.isArray(req.body.skills) ? req.body.skills : req.body.skills.split(',').map(s => s.trim())) : existingUser.skills,
-            education: Array.isArray(req.body.education) ? req.body.education : existingUser.education,
-            workExperience: Array.isArray(req.body.workExperience) ? req.body.workExperience : existingUser.workExperience,
+            projectUrl: req.body.projectUrl || existingUser.projectUrl,
+            summary: req.body.summary || existingUser.summary,
+            eduDegree: req.body.eduDegree || existingUser.eduDegree,
+            eduInstitution: req.body.eduInstitution || existingUser.eduInstitution,
+            eduSpecialisation: req.body.eduSpecialisation || existingUser.eduSpecialisation,
+            eduStartYear: req.body.eduStartYear || existingUser.eduStartYear,
+            eduEndYear: req.body.eduEndYear || existingUser.eduEndYear,
+            expCompany: req.body.expCompany || existingUser.expCompany,
+            expPosition: req.body.expPosition || existingUser.expPosition,
+            expStartYear: req.body.expStartYear || existingUser.expStartYear,
+            expEndYear: req.body.expEndYear || existingUser.expEndYear,
         };
 
         if (req.file) {
-            const basePath = `${req.protocol}://${req.get('host')}/public/profilepic/`;
-            updatedFields.profileImg = `${basePath}${req.file.filename}`;
+            if (req.file.mimetype === 'application/pdf') {
+                updatedFields.resume = `${req.protocol}://${req.get('host')}/public/resumes/${req.file.filename}`;
+            } else {
+                updatedFields.profileImg = `${req.protocol}://${req.get('host')}/public/profilepic/${req.file.filename}`;
+            }
         }
 
         const updatedUser = await SeekUser.findByIdAndUpdate(req.params.id, updatedFields, { new: true });
@@ -142,16 +136,20 @@ router.put('/update/:id', uploadOptions.single('image'), checkAuth, async (req, 
     }
 });
 
+// ✅ Delete User & Remove Files
 router.delete('/delete/:id', checkAuth, async (req, res) => {
     try {
         const user = await SeekUser.findById(req.params.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         if (user.profileImg) {
-            const filePath = `public/profilepic/${user.profileImg.split('/').pop()}`;
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            }
+            const profileImgPath = `public/profilepic/${user.profileImg.split('/').pop()}`;
+            if (fs.existsSync(profileImgPath)) fs.unlinkSync(profileImgPath);
+        }
+
+        if (user.resume) {
+            const resumePath = `public/resumes/${user.resume.split('/').pop()}`;
+            if (fs.existsSync(resumePath)) fs.unlinkSync(resumePath);
         }
 
         await SeekUser.findByIdAndDelete(req.params.id);

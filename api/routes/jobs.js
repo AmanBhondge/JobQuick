@@ -19,8 +19,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-                                     //Filter Section
-
+//Filter Section
 router.get("/filter", checkAuth, async (req, res) => {
     try {
         let filter = {};
@@ -72,12 +71,13 @@ router.get("/filter", checkAuth, async (req, res) => {
                 totalPages: Math.ceil(totalJobs / limit)
             }
         });
-    } catch (error) {
+    }
+    catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-                                 // GET jobs by createdBy (User ID)
+// GET jobs by createdBy (User ID)
 router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
     try {
         const { creatorId } = req.params;
@@ -112,7 +112,6 @@ router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-
 
 router.get("/:id", checkAuth, async (req, res) => {
     try {
@@ -190,7 +189,6 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
     }
 });
 
-
 router.delete("/:id", checkAuth, async (req, res) => {
     try {
         const jobId = req.params.id;
@@ -199,12 +197,24 @@ router.delete("/:id", checkAuth, async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid Job ID format" });
         }
 
-        const job = await Job.findByIdAndDelete(jobId);
+        const job = await Job.findById(jobId);
         if (!job) {
             return res.status(404).json({ success: false, message: "Job not found!" });
         }
 
-        res.status(200).json({ success: true, message: "Job deleted successfully!" });
+        // ✅ Delete profile image if it exists
+        if (job.profileImg) {
+            const imagePath = path.join(__dirname, '..', 'public', 'profilepic', path.basename(job.profileImg));
+            if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
+            }
+        }
+
+        await Applicant.deleteMany({ jobId });
+
+        await Job.findByIdAndDelete(jobId);
+
+        res.status(200).json({ success: true, message: "Job and related applicants deleted successfully!" });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
