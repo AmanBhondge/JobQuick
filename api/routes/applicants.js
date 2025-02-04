@@ -73,7 +73,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST a new applicant with a PDF resume
-router.post('/', upload.single('resume'), async (req, res) => {
+router.post('/', /*upload.single('resume'),*/ async (req, res) => {
     try {
         
         if (!mongoose.Types.ObjectId.isValid(req.body.jobId)) {
@@ -89,9 +89,9 @@ router.post('/', upload.single('resume'), async (req, res) => {
             shortListed: req.body.shortListed || false
         };
 
-        if (req.file) {
-            applicantData.resume = `/resumes/${req.file.filename}`;
-        }
+        // if (req.file) {
+        //     applicantData.resume = `/resumes/${req.file.filename}`;
+        // }
 
         const newApplicant = new Applicant(applicantData);
         await newApplicant.save();
@@ -134,9 +134,9 @@ router.delete('/:id', checkAuth, async (req, res) => {
             return res.status(404).json({ message: 'Applicant not found' });
         }
 
-        if (applicant.resume) {
-            fs.unlinkSync(path.join(__dirname, '..', applicant.resume));
-        }
+        // if (applicant.resume) {
+        //     fs.unlinkSync(path.join(__dirname, '..', applicant.resume));
+        // }
 
         await Applicant.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: 'Applicant deleted successfully' });

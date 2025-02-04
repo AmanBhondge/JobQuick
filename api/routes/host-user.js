@@ -47,7 +47,7 @@ router.get('/all', async (req, res) => {
     }
 });
 
-router.get('/:id', checkAuth, async (req, res) => {
+router.get('/:id',  async (req, res) => {
     try {
         const user = await HostUser.findById(req.params.id).select('-password');
         if (!user) return res.status(404).json({ message: 'User not found' });
@@ -136,7 +136,7 @@ router.put('/update/:id', uploadOptions.single('image'), checkAuth, async (req, 
 
         const updatedUser = await HostUser.findByIdAndUpdate(req.params.id, updatedFields, { new: true });
 
-        res.status(200).json({ message: 'User updated successfully', user: updatedUser });
+        res.status(200).json({ message: 'User updated successfully'});
 
     } catch (err) {
         res.status(500).json({ error: err.message });

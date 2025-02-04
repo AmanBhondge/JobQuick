@@ -13,9 +13,7 @@ const categoriesRoute = require('./api/routes/categories');
 const jobRoute = require('./api/routes/jobs');
 const applicantRoute = require('./api/routes/applicants');
 
-
 const { MONGO_URI } = require('./config');
-
 
 const connectDB = async () => {
     try {

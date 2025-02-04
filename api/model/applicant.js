@@ -11,10 +11,10 @@ const applicantSchema = mongoose.Schema({
         required: true,
         ref: 'SeekUser'
     },
-    resume: {
-        type: String,
-        default: ''
-    },
+    // resume: {
+    //     type: String,
+    //     default: ''
+    // },
     shortListed: {
         type: Boolean,
         default: false

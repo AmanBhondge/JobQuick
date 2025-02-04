@@ -13,10 +13,9 @@ const FILE_TYPE_MAP = {
     'image/png': 'png',
     'image/jpeg': 'jpeg',
     'image/jpg': 'jpg',
-    'application/pdf': 'pdf' // ✅ Added support for PDF files
+    'application/pdf': 'pdf'
 };
 
-// Ensure upload directories exist
 const profilePicDir = 'public/profilepic';
 const resumeDir = 'public/resumes';
 
@@ -56,7 +55,7 @@ router.get('/:id', checkAuth, async (req, res) => {
 });
 
 
-// ✅ Signup Route (Accepts Profile Image & Resume)
+// ✅ Signup Route 
 router.post('/signup', uploadProfilePic.single('profileImg'), uploadResume.single('resume'), async (req, res) => {
     try {
         if (!req.body.email || !req.body.password) {
@@ -114,19 +113,16 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ message: 'Email and password are required' });
         }
 
-        // Find user by email
         const user = await SeekUser.findOne({ email: email.trim().toLowerCase() });
         if (!user) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        // Compare hashed password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
-
-        // Generate JWT token
+ 
         const token = jwt.sign(
             { userId: user._id, email: user.email },
             process.env.JWT_SECRET,
@@ -182,7 +178,7 @@ router.put('/update/:id', uploadProfilePic.single('profileImg'), uploadResume.si
         }
 
         const updatedUser = await SeekUser.findByIdAndUpdate(req.params.id, updatedFields, { new: true });
-        res.status(200).json({ message: 'User updated successfully', user: updatedUser });
+        res.status(200).json({ message: 'User updated successfully'});
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
