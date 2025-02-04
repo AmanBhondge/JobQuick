@@ -33,7 +33,7 @@ const upload = multer({
 });
 
 // GET all applicants
-router.get('/', async (req, res) => {
+router.get('/',checkAuth , async (req, res) => {
     try {
         let filter = {};
 
@@ -60,7 +60,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET a single applicant by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id',checkAuth , async (req, res) => {
     try {
         const applicant = await Applicant.findById(req.params.id).populate('jobId').populate('applicantId');
         if (!applicant) {
@@ -73,7 +73,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST a new applicant with a PDF resume
-router.post('/', /*upload.single('resume'),*/ async (req, res) => {
+router.post('/', /*upload.single('resume'),*/checkAuth , async (req, res) => {
     try {
         
         if (!mongoose.Types.ObjectId.isValid(req.body.jobId)) {
@@ -102,7 +102,7 @@ router.post('/', /*upload.single('resume'),*/ async (req, res) => {
     }
 });
 
-router.put('/shortlisted/:id', async (req, res) => {
+router.put('/shortlisted/:id',checkAuth , async (req, res) => {
     try {
         const { shortListed } = req.body;
 
