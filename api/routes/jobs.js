@@ -5,8 +5,10 @@ const path = require("path");
 const Job = require("../model/job");
 const Category = require("../model/category");
 const HostUser = require("../model/host-user");
+const Applicant = require('../model/applicant');
 const checkAuth = require("../middleware/check-auth");
 const router = express.Router();
+const fs = require('fs');
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -179,7 +181,7 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
     }
 });
 
-router.delete("/:id", checkAuth, async (req, res) => {
+router.delete("/:id",checkAuth , async (req, res) => {
     try {
         const jobId = req.params.id;
 
