@@ -72,33 +72,40 @@ router.get('/:id',checkAuth , async (req, res) => {
     }
 });
 
-// POST a new applicant with a PDF resume
-router.post('/', /*upload.single('resume'),*/checkAuth , async (req, res) => {
+
+router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
     try {
-        
-        if (!mongoose.Types.ObjectId.isValid(req.body.jobId)) {
+        const { jobId, applicantId } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(jobId)) {
             return res.status(400).json({ message: 'Invalid jobId' });
         }
-        if (!mongoose.Types.ObjectId.isValid(req.body.applicantId)) {
+        if (!mongoose.Types.ObjectId.isValid(applicantId)) {
             return res.status(400).json({ message: 'Invalid applicantId' });
         }
 
+        // ✅ Check if applicant already applied for this job
+        const existingApplication = await Applicant.findOne({ jobId, applicantId });
+        if (existingApplication) {
+            return res.status(400).json({ message: 'You have already applied for this job' });
+        }
+
         const applicantData = {
-            jobId: req.body.jobId,
-            applicantId: req.body.applicantId,
+            jobId,
+            applicantId,
             shortListed: req.body.shortListed || false
         };
 
-        // if (req.file) {
+         // if (req.file) {
         //     applicantData.resume = `/resumes/${req.file.filename}`;
         // }
 
         const newApplicant = new Applicant(applicantData);
         await newApplicant.save();
 
-        res.status(201).json(newApplicant);
+        res.status(201).json({ message: 'Application submitted successfully', applicant: newApplicant });
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(500).json({ message: err.message });
     }
 });
 
