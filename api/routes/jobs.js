@@ -49,27 +49,17 @@ router.get("/filter", checkAuth, async (req, res) => {
             filter.experience = { $regex: new RegExp(req.query.experience.trim(), "i") };
         }
 
-        const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const skip = (page - 1) * limit;
-
+    
         const jobList = await Job.find(filter)
             .populate("category", "title")
             .populate("createdBy", "fullName email")
-            .skip(skip)
             .limit(limit);
-
-        const totalJobs = await Job.countDocuments(filter);
 
         res.status(200).json({
             success: true,
             jobs: jobList,
-            pagination: {
-                total: totalJobs,
-                page: page,
-                limit: limit,
-                totalPages: Math.ceil(totalJobs / limit)
-            }
+            limit: limit
         });
     }
     catch (error) {
