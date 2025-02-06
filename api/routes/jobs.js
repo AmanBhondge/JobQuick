@@ -94,17 +94,36 @@ router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
+        // 🔹 Find jobs created by the creator
         const jobs = await Job.find({ createdBy: creatorId })
             .populate("category", "title")
             .populate("createdBy", "fullName email")
             .skip(skip)
             .limit(limit);
 
+        // 🔹 Total jobs count
         const totalJobs = await Job.countDocuments({ createdBy: creatorId });
+
+        // 🔹 Get job IDs posted by the creator
+        const jobIds = jobs.map(job => job._id);
+
+        // 🔹 Count total applicants who applied to those jobs
+        const totalApplicants = await Applicant.countDocuments({ jobId: { $in: jobIds } });
+
+        // 🔹 Count total shortlisted applicants
+        const totalShortlisted = await Applicant.countDocuments({ 
+            jobId: { $in: jobIds }, 
+            shortListed: true 
+        });
 
         res.status(200).json({
             success: true,
             jobs,
+            statistics: {
+                totalJobs,
+                totalApplicants,
+                totalShortlisted
+            },
             pagination: {
                 total: totalJobs,
                 page,
@@ -116,6 +135,7 @@ router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 
 router.get("/:id", checkAuth, async (req, res) => {
     try {
