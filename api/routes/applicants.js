@@ -33,7 +33,7 @@ const upload = multer({
 });
 
 // GET all applicants
-router.get('/',checkAuth , async (req, res) => {
+router.get('/',checkAuth ,  async (req, res) => {
     try {
         let filter = {};
 
@@ -84,7 +84,6 @@ router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
             return res.status(400).json({ message: 'Invalid applicantId' });
         }
 
-        // ✅ Check if applicant already applied for this job
         const existingApplication = await Applicant.findOne({ jobId, applicantId });
         if (existingApplication) {
             return res.status(400).json({ message: 'You have already applied for this job' });
@@ -134,7 +133,7 @@ router.put('/shortlisted/:id',checkAuth , async (req, res) => {
 });
 
 // DELETE an applicant by ID
-router.delete('/:id', checkAuth, async (req, res) => {
+router.delete('/:id',checkAuth , async (req, res) => {
     try {
         const applicant = await Applicant.findById(req.params.id);
         if (!applicant) {

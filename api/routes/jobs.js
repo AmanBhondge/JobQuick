@@ -51,20 +51,32 @@ router.get("/filter", checkAuth, async (req, res) => {
             filter.experience = { $regex: new RegExp(req.query.experience.trim(), "i") };
         }
 
+        // ✅ Pagination setup
+        const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-    
+        const skip = (page - 1) * limit;
+
+        // ✅ Fetch jobs with filters and pagination
         const jobList = await Job.find(filter)
             .populate("category", "title")
             .populate("createdBy", "fullName email")
+            .skip(skip)
             .limit(limit);
+
+        // ✅ Get total job count for pagination
+        const totalJobs = await Job.countDocuments(filter);
 
         res.status(200).json({
             success: true,
             jobs: jobList,
-            limit: limit
+            pagination: {
+                total: totalJobs,
+                limit: limit,
+                page: page,
+                totalPages: Math.ceil(totalJobs / limit),
+            }
         });
-    }
-    catch (error) {
+    } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
