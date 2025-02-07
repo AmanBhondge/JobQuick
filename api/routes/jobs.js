@@ -51,19 +51,16 @@ router.get("/filter", checkAuth, async (req, res) => {
             filter.experience = { $regex: new RegExp(req.query.experience.trim(), "i") };
         }
 
-        // ✅ Pagination setup
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        // ✅ Fetch jobs with filters and pagination
         const jobList = await Job.find(filter)
             .populate("category", "title")
             .populate("createdBy", "fullName email")
             .skip(skip)
             .limit(limit);
 
-        // ✅ Get total job count for pagination
         const totalJobs = await Job.countDocuments(filter);
 
         res.status(200).json({
@@ -94,23 +91,18 @@ router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        // 🔹 Find jobs created by the creator
         const jobs = await Job.find({ createdBy: creatorId })
             .populate("category", "title")
             .populate("createdBy", "fullName email")
             .skip(skip)
             .limit(limit);
 
-        // 🔹 Total jobs count
         const totalJobs = await Job.countDocuments({ createdBy: creatorId });
 
-        // 🔹 Get job IDs posted by the creator
         const jobIds = jobs.map(job => job._id);
 
-        // 🔹 Count total applicants who applied to those jobs
         const totalApplicants = await Applicant.countDocuments({ jobId: { $in: jobIds } });
 
-        // 🔹 Count total shortlisted applicants
         const totalShortlisted = await Applicant.countDocuments({ 
             jobId: { $in: jobIds }, 
             shortListed: true 
