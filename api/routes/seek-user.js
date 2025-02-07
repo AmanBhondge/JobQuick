@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
 const checkAuth = require('../middleware/check-auth');
+const Applicant = require('../model/applicant')
 
 const FILE_TYPE_MAP = {
     'image/png': 'png',
