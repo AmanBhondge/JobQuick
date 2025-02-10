@@ -84,7 +84,7 @@ router.post('/signup', uploadProfilePic.single('profileImg'), uploadResume.singl
             country: req.body.country || '',
             pincode: req.body.pincode || '',
             profileImg: profileImg,
-            resume: resumePath, // ✅ Saving resume file path
+            resume: resumePath, 
             skills: req.body.skills ? (Array.isArray(req.body.skills) ? req.body.skills : req.body.skills.split(',').map(s => s.trim())) : [],
             projectUrl: req.body.projectUrl || '',
             summary: req.body.summary || '',

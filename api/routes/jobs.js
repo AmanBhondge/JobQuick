@@ -58,6 +58,7 @@ router.get("/filter", checkAuth, async (req, res) => {
         const jobList = await Job.find(filter)
             .populate("category", "title")
             .populate("createdBy", "fullName email")
+            .sort({ dateCreated: -1 })
             .skip(skip)
             .limit(limit);
 
@@ -103,9 +104,9 @@ router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
 
         const totalApplicants = await Applicant.countDocuments({ jobId: { $in: jobIds } });
 
-        const totalShortlisted = await Applicant.countDocuments({ 
-            jobId: { $in: jobIds }, 
-            shortListed: true 
+        const totalShortlisted = await Applicant.countDocuments({
+            jobId: { $in: jobIds },
+            shortListed: true
         });
 
         res.status(200).json({
@@ -205,7 +206,7 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
     }
 });
 
-router.delete("/:id",checkAuth , async (req, res) => {
+router.delete("/:id", checkAuth, async (req, res) => {
     try {
         const jobId = req.params.id;
 
