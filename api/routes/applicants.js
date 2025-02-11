@@ -32,30 +32,38 @@ const upload = multer({
     }
 });
 
-// GET all applicants
-router.get('/',checkAuth ,  async (req, res) => {
+router.get("/graph", async (req, res) => {
     try {
-        let filter = {};
+        const startOfWeek = new Date();
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Set to Sunday
 
-        if (req.query.jobId && mongoose.Types.ObjectId.isValid(req.query.jobId)) {
-            filter.jobId = req.query.jobId;
-        }
+        const endOfWeek = new Date();
+        endOfWeek.setDate(startOfWeek.getDate() + 6); // Set to Saturday
 
-        if (req.query.applicantId && mongoose.Types.ObjectId.isValid(req.query.applicantId)) {
-            filter.applicantId = req.query.applicantId;
-        }
+        const applicants = await Applicant.aggregate([
+            {
+                $match: {
+                    dateApplied: { $gte: startOfWeek, $lte: endOfWeek } // Filter for this week
+                }
+            },
+            {
+                $group: {
+                    _id: { $dayOfWeek: "$dateApplied" }, // Group by day of the week (1 = Sunday, 7 = Saturday)
+                    count: { $sum: 1 } // Count applicants per day
+                }
+            }
+        ]);
 
-        if (req.query.shortListed !== undefined) {
-            filter.shortListed = req.query.shortListed === 'true'; 
-        }
+        // Mapping MongoDB's dayOfWeek (1 = Sunday, ..., 7 = Saturday) to an array
+        const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const result = Array(7).fill(0).map((_, i) => ({
+            day: daysOfWeek[i],
+            applicants: applicants.find(a => a._id === i + 1)?.count || 0
+        }));
 
-        const applicants = await Applicant.find(filter)
-            .populate('jobId')
-            .populate('applicantId');
-
-        res.status(200).json(applicants);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

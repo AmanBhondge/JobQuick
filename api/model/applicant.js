@@ -18,6 +18,10 @@ const applicantSchema = mongoose.Schema({
     shortListed: {
         type: Boolean,
         default: false
+    },
+    dateApplied: {
+        type: Date,
+        default: Date.now
     }
 });
 
