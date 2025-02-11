@@ -32,17 +32,69 @@ const upload = multer({
     }
 });
 
-router.get("/graph", async (req, res) => {
+// GET all applicants
+router.get('/',checkAuth ,  async (req, res) => {
     try {
+        let filter = {};
+
+        if (req.query.jobId && mongoose.Types.ObjectId.isValid(req.query.jobId)) {
+            filter.jobId = req.query.jobId;
+        }
+
+        if (req.query.applicantId && mongoose.Types.ObjectId.isValid(req.query.applicantId)) {
+            filter.applicantId = req.query.applicantId;
+        }
+
+        if (req.query.shortListed !== undefined) {
+            filter.shortListed = req.query.shortListed === 'true'; 
+        }
+
+        const applicants = await Applicant.find(filter)
+            .populate('jobId')
+            .populate('applicantId');
+
+        res.status(200).json(applicants);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// GET a single applicant by ID
+router.get('/:id',checkAuth , async (req, res) => {
+    try {
+        const applicant = await Applicant.findById(req.params.id).populate('jobId').populate('applicantId');
+        if (!applicant) {
+            return res.status(404).json({ message: 'Applicant not found' });
+        }
+        res.status(200).json(applicant);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.get("/graph/:jobId", checkAuth, async (req, res) => {
+    try {
+        const jobId = req.params.jobId;
+
+        // Validate if jobId is provided
+        if (!jobId) {
+            return res.status(400).json({ success: false, message: "Job ID is required." });
+        }
+
+        // Get start and end of the current week (Sunday to Saturday)
         const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Set to Sunday
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
 
         const endOfWeek = new Date();
-        endOfWeek.setDate(startOfWeek.getDate() + 6); // Set to Saturday
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
 
+        // Aggregate applicants data for the specific job ID
         const applicants = await Applicant.aggregate([
             {
                 $match: {
+                    jobId: new mongoose.Types.ObjectId(jobId), // Filter by jobId
                     dateApplied: { $gte: startOfWeek, $lte: endOfWeek } // Filter for this week
                 }
             },
@@ -61,22 +113,9 @@ router.get("/graph", async (req, res) => {
             applicants: applicants.find(a => a._id === i + 1)?.count || 0
         }));
 
-        res.status(200).json({ success: true, data: result });
+        res.status(200).json({ success: true, jobId, data: result });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// GET a single applicant by ID
-router.get('/:id',checkAuth , async (req, res) => {
-    try {
-        const applicant = await Applicant.findById(req.params.id).populate('jobId').populate('applicantId');
-        if (!applicant) {
-            return res.status(404).json({ message: 'Applicant not found' });
-        }
-        res.status(200).json(applicant);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
     }
 });
 
