@@ -33,7 +33,7 @@ const upload = multer({
 });
 
 // GET all applicants
-router.get('/',checkAuth ,  async (req, res) => {
+router.get('/', checkAuth, async (req, res) => {
     try {
         let filter = {};
 
@@ -46,7 +46,7 @@ router.get('/',checkAuth ,  async (req, res) => {
         }
 
         if (req.query.shortListed !== undefined) {
-            filter.shortListed = req.query.shortListed === 'true'; 
+            filter.shortListed = req.query.shortListed === 'true';
         }
 
         const applicants = await Applicant.find(filter)
@@ -60,7 +60,7 @@ router.get('/',checkAuth ,  async (req, res) => {
 });
 
 // GET a single applicant by ID
-router.get('/:id',checkAuth , async (req, res) => {
+router.get('/:id', checkAuth, async (req, res) => {
     try {
         const applicant = await Applicant.findById(req.params.id).populate('jobId').populate('applicantId');
         if (!applicant) {
@@ -92,14 +92,14 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
         const applicants = await Applicant.aggregate([
             {
                 $match: {
-                    jobId: new mongoose.Types.ObjectId(jobId), 
-                    dateApplied: { $gte: startOfWeek, $lte: endOfWeek } 
+                    jobId: new mongoose.Types.ObjectId(jobId),
+                    dateApplied: { $gte: startOfWeek, $lte: endOfWeek }
                 }
             },
             {
                 $group: {
-                    _id: { $dayOfWeek: "$dateApplied" }, 
-                    count: { $sum: 1 } 
+                    _id: { $dayOfWeek: "$dateApplied" },
+                    count: { $sum: 1 }
                 }
             }
         ]);
@@ -113,7 +113,7 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
         res.status(200).json({ success: true, jobId, data: result });
 
         // Emit real-time graph update to connected clients
-        io.emit("graphUpdated", { jobId, data: result });
+        setTimeout(() => io.emit("graphUpdated", { jobId, data: result }), 100);
 
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -144,14 +144,14 @@ router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
             shortListed: req.body.shortListed || false
         };
 
-         // if (req.file) {
+        // if (req.file) {
         //     applicantData.resume = `/resumes/${req.file.filename}`;
         // }
 
         const newApplicant = new Applicant(applicantData);
         await newApplicant.save();
 
-        io.emit("newApplicant", { jobId, applicantId });
+        setTimeout(() => io.emit("newApplicant", { jobId, applicantId }), 100);
 
         res.status(201).json({ message: 'Application submitted successfully', applicant: newApplicant });
     } catch (err) {
@@ -159,7 +159,7 @@ router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
     }
 });
 
-router.put('/shortlisted/:id',checkAuth , async (req, res) => {
+router.put('/shortlisted/:id', checkAuth, async (req, res) => {
     try {
         const { shortListed } = req.body;
         const io = req.app.get("socketio");
@@ -178,8 +178,7 @@ router.put('/shortlisted/:id',checkAuth , async (req, res) => {
             return res.status(404).json({ message: 'Applicant not found' });
         }
 
-        io.emit("applicantShortlisted", { applicantId: req.params.id, shortListed });
-
+        setTimeout(() => io.emit("applicantShortlisted", { applicantId: req.params.id, shortListed }), 100);
         res.status(200).json(updatedApplicant);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -187,7 +186,7 @@ router.put('/shortlisted/:id',checkAuth , async (req, res) => {
 });
 
 // DELETE an applicant by ID
-router.delete('/:id',checkAuth , async (req, res) => {
+router.delete('/:id', checkAuth, async (req, res) => {
     try {
         const io = req.app.get("socketio");
         const applicant = await Applicant.findById(req.params.id);
@@ -201,7 +200,7 @@ router.delete('/:id',checkAuth , async (req, res) => {
 
         await Applicant.findByIdAndDelete(req.params.id);
 
-        io.emit("applicantDeleted", { applicantId: req.params.id });
+        setTimeout(() => io.emit("applicantDeleted", { applicantId: req.params.id }), 100);
 
         res.status(200).json({ message: 'Applicant deleted successfully' });
     } catch (err) {
