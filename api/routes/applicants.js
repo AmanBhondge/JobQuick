@@ -75,13 +75,12 @@ router.get('/:id',checkAuth , async (req, res) => {
 router.get("/graph/:jobId", checkAuth, async (req, res) => {
     try {
         const jobId = req.params.jobId;
+        const io = req.app.get("socketio"); // Get Socket.IO instance
 
-        // Validate if jobId is provided
         if (!jobId) {
             return res.status(400).json({ success: false, message: "Job ID is required." });
         }
 
-        // Get start and end of the current week (Sunday to Saturday)
         const startOfWeek = new Date();
         startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
         startOfWeek.setHours(0, 0, 0, 0);
@@ -90,23 +89,21 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         endOfWeek.setHours(23, 59, 59, 999);
 
-        // Aggregate applicants data for the specific job ID
         const applicants = await Applicant.aggregate([
             {
                 $match: {
-                    jobId: new mongoose.Types.ObjectId(jobId), // Filter by jobId
-                    dateApplied: { $gte: startOfWeek, $lte: endOfWeek } // Filter for this week
+                    jobId: new mongoose.Types.ObjectId(jobId), 
+                    dateApplied: { $gte: startOfWeek, $lte: endOfWeek } 
                 }
             },
             {
                 $group: {
-                    _id: { $dayOfWeek: "$dateApplied" }, // Group by day of the week (1 = Sunday, 7 = Saturday)
-                    count: { $sum: 1 } // Count applicants per day
+                    _id: { $dayOfWeek: "$dateApplied" }, 
+                    count: { $sum: 1 } 
                 }
             }
         ]);
 
-        // Mapping MongoDB's dayOfWeek (1 = Sunday, ..., 7 = Saturday) to an array
         const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const result = Array(7).fill(0).map((_, i) => ({
             day: daysOfWeek[i],
@@ -114,6 +111,10 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
         }));
 
         res.status(200).json({ success: true, jobId, data: result });
+
+        // Emit real-time graph update to connected clients
+        io.emit("graphUpdated", { jobId, data: result });
+
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -123,6 +124,7 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
 router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
     try {
         const { jobId, applicantId } = req.body;
+        const io = req.app.get("socketio");
 
         if (!mongoose.Types.ObjectId.isValid(jobId)) {
             return res.status(400).json({ message: 'Invalid jobId' });
@@ -149,6 +151,8 @@ router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
         const newApplicant = new Applicant(applicantData);
         await newApplicant.save();
 
+        io.emit("newApplicant", { jobId, applicantId });
+
         res.status(201).json({ message: 'Application submitted successfully', applicant: newApplicant });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -158,6 +162,7 @@ router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
 router.put('/shortlisted/:id',checkAuth , async (req, res) => {
     try {
         const { shortListed } = req.body;
+        const io = req.app.get("socketio");
 
         if (typeof shortListed !== 'boolean') {
             return res.status(400).json({ message: 'Invalid value for shortListed. Must be true or false.' });
@@ -173,6 +178,8 @@ router.put('/shortlisted/:id',checkAuth , async (req, res) => {
             return res.status(404).json({ message: 'Applicant not found' });
         }
 
+        io.emit("applicantShortlisted", { applicantId: req.params.id, shortListed });
+
         res.status(200).json(updatedApplicant);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -182,6 +189,7 @@ router.put('/shortlisted/:id',checkAuth , async (req, res) => {
 // DELETE an applicant by ID
 router.delete('/:id',checkAuth , async (req, res) => {
     try {
+        const io = req.app.get("socketio");
         const applicant = await Applicant.findById(req.params.id);
         if (!applicant) {
             return res.status(404).json({ message: 'Applicant not found' });
@@ -192,6 +200,9 @@ router.delete('/:id',checkAuth , async (req, res) => {
         // }
 
         await Applicant.findByIdAndDelete(req.params.id);
+
+        io.emit("applicantDeleted", { applicantId: req.params.id });
+
         res.status(200).json({ message: 'Applicant deleted successfully' });
     } catch (err) {
         res.status(500).json({ message: err.message });
