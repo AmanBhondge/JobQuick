@@ -32,15 +32,8 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('tiny'));
 
-// Static Files
 app.use('/public/profilepic', express.static(path.join(__dirname, 'public', 'profilepic')));
 app.use('/public/resumes', express.static(path.join(__dirname, 'public', 'resumes')));
-
-// Routes (Pass `io` to Routes)
-app.use((req, res, next) => {
-    req.io = app.get("io"); // Attach `io` to `req` so routes can use it
-    next();
-});
 
 app.use('/seekuser', seekUserRoute);
 app.use('/hostuser', hostUserRoute);
@@ -48,6 +41,7 @@ app.use('/ats', atsRoute);
 app.use('/categories', categoriesRoute);
 app.use('/job', jobRoute);
 app.use('/applicants', applicantRoute);
+
 
 app.use((req, res, next) => {
     res.status(404).json({ message: "❌ Bad Request - Route Not Found" });
