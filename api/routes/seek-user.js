@@ -23,7 +23,6 @@ const resumeDir = 'public/resumes';
 if (!fs.existsSync(profilePicDir)) fs.mkdirSync(profilePicDir, { recursive: true });
 if (!fs.existsSync(resumeDir)) fs.mkdirSync(resumeDir, { recursive: true });
 
-// Multer Storage Configurations
 const storage = (destination) =>
     multer.diskStorage({
         destination: (req, file, cb) => {
@@ -191,22 +190,18 @@ router.delete('/delete/:id', checkAuth, async (req, res) => {
         const user = await SeekUser.findById(req.params.id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // ✅ Delete profile image if it exists
         if (user.profileImg) {
             const profileImgPath = `public/profilepic/${user.profileImg.split('/').pop()}`;
             if (fs.existsSync(profileImgPath)) fs.unlinkSync(profileImgPath);
         }
 
-        // ✅ Delete resume if it exists
         if (user.resume) {
             const resumePath = `public/resumes/${user.resume.split('/').pop()}`;
             if (fs.existsSync(resumePath)) fs.unlinkSync(resumePath);
         }
 
-        // ✅ Delete all applications by this user
         await Applicant.deleteMany({ applicantId: req.params.id });
 
-        // ✅ Delete the user
         await SeekUser.findByIdAndDelete(req.params.id);
 
         res.status(200).json({ message: 'User and related applications deleted successfully' });

@@ -1,100 +1,52 @@
-const express = require('express');
-const multer = require('multer');
-const pdfParse = require('pdf-parse');
-const fs = require('fs');
-const Resume = require('../model/ats-score-checker');
-const mongoose = require('mongoose');
-const natural = require('natural');
+require("dotenv").config();
+const express = require("express");
+const multer = require("multer");
+const pdfParse = require("pdf-parse");
+const axios = require("axios");
 
-const router = express.Router();
+const app = express();
+const upload = multer();
 
-const uploadDir = 'public/resumes';
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
+app.post("/check", upload.single("resume"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
+    const parsedPDF = await pdfParse(req.file.buffer);
+    let resumeText = parsedPDF.text;
+    console.log("🔹 Parsed Resume:", resumeText);
+
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        contents: [{
+          parts: [{
+            text: `Analyze this resume for ATS compatibility. Provide a score out of 100 and suggest improvements. Format response as: \"Score: [number]\" followed by feedback.
+  \n${resumeText}`
+          }]
+        }]
+      },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    let analysis = response?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "No feedback received from AI";
+    console.log("AI Response:", analysis);
+
+    const scoreMatch = analysis.match(/Score:\s*(\d+)/);
+    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : null;
+
+    if (score === null) {
+      return res.status(500).json({ error: "Failed to extract score from AI response" });
     }
+
+    res.json({ score, feedback: analysis });
+
+    resumeText = null;
+    analysis = null;
+
+  } catch (error) {
+    console.error("Error analyzing resume:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
-const upload = multer({
-    storage,
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype !== 'application/pdf') {
-            return cb(new Error('Only PDF files are allowed'), false);
-        }
-        cb(null, true);
-    }
-});
-
-const tokenizer = new natural.WordTokenizer();
-
-const calculateATSScore = (resumeText, jobDescription) => {
-
-    const resumeWords = tokenizer.tokenize(resumeText.toLowerCase());
-    const jobWords = tokenizer.tokenize(jobDescription.toLowerCase());
-
-    const stemmer = natural.PorterStemmer;
-    const resumeStemmed = resumeWords.map(word => stemmer.stem(word));
-    const jobStemmed = jobWords.map(word => stemmer.stem(word));
-
-    const matchedKeywords = jobStemmed.filter(word => resumeStemmed.includes(word));
-    const atsScore = jobStemmed.length > 0 ? (matchedKeywords.length / jobStemmed.length) * 100 : 0;
-
-    return {
-        atsScore: Math.round(atsScore),
-        keywordsMatched: [...new Set(matchedKeywords)]
-    };
-};
-
-router.post('/upload', upload.single('resume'), async (req, res) => {
-    try {
-
-        const { userId, jobDescription } = req.body;
-
-        if (!req.file || !userId || !jobDescription) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        const pdfBuffer = fs.readFileSync(req.file.path);
-        const pdfData = await pdfParse(pdfBuffer);
-        const resumeText = pdfData.text;
-
-        const { atsScore, keywordsMatched } = calculateATSScore(resumeText, jobDescription);
-
-        const resume = new Resume({
-            userId,
-            resumeFile: req.file.path,
-            resumeText,
-            jobDescription,
-            atsScore,
-            keywordsMatched
-        });
-
-        const savedResume = await resume.save();
-        res.status(201).json(savedResume);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-router.get('/score/:userId', async (req, res) => {
-    try {
-        const resumes = await Resume.find({ userId: req.params.userId }).sort({ createdAt: -1 });
-
-        if (!resumes.length) {
-            return res.status(404).json({ message: "No resumes found for this user" });
-        }
-
-        res.status(200).json(resumes);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-module.exports = router;
+module.exports = app;

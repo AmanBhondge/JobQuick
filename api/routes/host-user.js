@@ -168,7 +168,6 @@ router.delete('/delete/:id', checkAuth, async (req, res) => {
         if (jobs.length > 0) {
             const jobIds = jobs.map(job => job._id);
 
-            // ✅ Delete all job images
             for (const job of jobs) {
                 if (job.profileImg) {
                     const imagePath = path.join(__dirname, '..', 'public', 'profilepic', path.basename(job.profileImg));
