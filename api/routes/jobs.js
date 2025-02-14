@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-//Filter Section
+//Filter Section with subcategories support
 router.get("/filter", checkAuth, async (req, res) => {
     try {
         let filter = {};
@@ -29,12 +29,28 @@ router.get("/filter", checkAuth, async (req, res) => {
         if (req.query.categories && req.query.categories.trim() !== "") {
             const categoryTitles = req.query.categories.split(",").map(title => title.trim().toLowerCase());
 
+            // Find matching categories
             const categories = await Category.find({
-                title: { $in: categoryTitles.map(title => new RegExp(`^${title}$`, "i")) }
+                $or: [
+                    { title: { $in: categoryTitles.map(title => new RegExp(`^${title}$`, "i")) } },
+                    { "subcategories.title": { $in: categoryTitles.map(title => new RegExp(`^${title}$`, "i")) } }
+                ]
             });
 
             if (categories.length > 0) {
-                filter.category = { $in: categories.map(cat => cat._id) };
+                const categoryIds = categories.map(cat => cat._id);
+                const subcategoryTitles = categoryTitles.filter(title => 
+                    categories.some(cat => 
+                        cat.subcategories.some(sub => 
+                            sub.title.toLowerCase() === title.toLowerCase()
+                        )
+                    )
+                );
+
+                filter.$or = [
+                    { category: { $in: categoryIds } },
+                    { subcategories: { $in: subcategoryTitles } }
+                ];
             }
         }
 
@@ -56,7 +72,7 @@ router.get("/filter", checkAuth, async (req, res) => {
         const skip = (page - 1) * limit;
 
         const jobList = await Job.find(filter)
-            .populate("category", "title")
+            .populate("category", "title subcategories")
             .populate("createdBy", "fullName email")
             .sort({ dateCreated: -1 })
             .skip(skip)
@@ -78,7 +94,7 @@ router.get("/filter", checkAuth, async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-
+  
 // GET jobs by createdBy (User ID)
 router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
     try {
@@ -152,9 +168,20 @@ router.get("/:id", checkAuth, async (req, res) => {
 
 router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
     try {
-        const { companyName, companyEmail, companyURL, fullName, phoneNo, numOfEmployee, title, jobType, location, workType, minEducation, experience, interviewType, companyDescription, jobDescription, noOfOpeaning, minPackage, maxPackage, categoryTitle, createdBy, skills } = req.body;
+        const { 
+            companyName, companyEmail, companyURL, fullName, phoneNo, 
+            numOfEmployee, title, jobType, location, workType, 
+            minEducation, experience, interviewType, companyDescription, 
+            jobDescription, noOfOpeaning, minPackage, maxPackage, 
+            categoryTitle, subcategories, createdBy, skills 
+        } = req.body;
 
-        if (!companyName || !companyEmail || !companyURL || !fullName || !phoneNo || !title || !jobType || !location || !workType || !minEducation || !experience || !interviewType || !companyDescription || !jobDescription || !noOfOpeaning || !minPackage || !maxPackage || !categoryTitle || !createdBy || !skills) {
+        // Basic validation
+        if (!companyName || !companyEmail || !companyURL || !fullName || 
+            !phoneNo || !title || !jobType || !location || !workType || 
+            !minEducation || !experience || !interviewType || 
+            !companyDescription || !jobDescription || !noOfOpeaning || 
+            !minPackage || !maxPackage || !categoryTitle || !createdBy || !skills) {
             return res.status(400).json({ success: false, message: "All fields are required!" });
         }
 
@@ -167,11 +194,29 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
             return res.status(400).json({ success: false, message: "At least one skill is required" });
         }
 
-        const categoryExists = await Category.findOne({ title: categoryTitle });
-        if (!categoryExists) return res.status(400).json({ success: false, message: "Category not found" });
+        // Find category and validate subcategories
+        const category = await Category.findOne({ title: categoryTitle });
+        if (!category) {
+            return res.status(400).json({ success: false, message: "Category not found" });
+        }
+
+        // Validate and process subcategories
+        let validSubcategories = [];
+        if (subcategories) {
+            const subcategoryArray = Array.isArray(subcategories) ? 
+                subcategories : subcategories.split(",").map(s => s.trim());
+            
+            validSubcategories = subcategoryArray.filter(sub => 
+                category.subcategories.some(catSub => 
+                    catSub.title.toLowerCase() === sub.toLowerCase()
+                )
+            );
+        }
 
         const hostUser = await HostUser.findById(createdBy);
-        if (!hostUser) return res.status(400).json({ success: false, message: "Host user not found" });
+        if (!hostUser) {
+            return res.status(400).json({ success: false, message: "Host user not found" });
+        }
 
         const job = new Job({
             _id: new mongoose.Types.ObjectId(),
@@ -193,14 +238,20 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
             noOfOpeaning,
             minPackage,
             maxPackage,
-            category: categoryExists._id,
+            category: category._id,
+            subcategories: validSubcategories,
             createdBy,
             skills: skillArray,
-            profileImg: req.file ? `${req.protocol}://${req.get('host')}/public/profilepic/${req.file.filename}` : "",
+            profileImg: req.file ? 
+                `${req.protocol}://${req.get('host')}/public/profilepic/${req.file.filename}` : "",
         });
 
         const savedJob = await job.save();
-        res.status(201).json({ success: true, message: "Job created successfully", job: savedJob });
+        res.status(201).json({ 
+            success: true, 
+            message: "Job created successfully", 
+            job: savedJob 
+        });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }

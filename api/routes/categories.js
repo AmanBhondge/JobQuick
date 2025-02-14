@@ -43,33 +43,12 @@ router.post('/', async (req, res) => {
         }
 
         const category = new Category({
-            title: req.body.title
+            title: req.body.title,
+            subcategories: req.body.subcategories || []
         });
 
         await category.save();
         res.status(201).json({ success: true, message: 'Category created successfully', data: category });
-    } catch (err) {
-        res.status(400).json({ success: false, message: err.message });
-    }
-});
-
-router.put('/:id', async (req, res) => {
-    try {
-        if (!mongoose.isValidObjectId(req.params.id)) {
-            return res.status(400).json({ success: false, message: 'Invalid Category ID' });
-        }
-
-        const category = await Category.findByIdAndUpdate(
-            req.params.id,
-            { title: req.body.title },
-            { new: true }
-        );
-
-        if (!category) {
-            return res.status(404).json({ success: false, message: 'Category not found.' });
-        }
-
-        res.status(200).json({ success: true, message: 'Category updated successfully', data: category });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
     }
