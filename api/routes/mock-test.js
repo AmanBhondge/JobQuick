@@ -1,10 +1,11 @@
 require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
+const checkAuth = require("../middleware/check-auth");
 
 const router = express.Router();
 
-router.post("/generate", async (req, res) => {
+router.post("/generate",checkAuth, async (req, res) => {
     try {
         const { category, subcategory } = req.body;
 
