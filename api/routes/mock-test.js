@@ -5,7 +5,7 @@ const checkAuth = require("../middleware/check-auth");
 
 const router = express.Router();
 
-router.post("/generate",checkAuth, async (req, res) => {
+router.post("/generate", checkAuth, async (req, res) => {
     try {
         const { category, subcategory } = req.body;
 
@@ -19,7 +19,15 @@ router.post("/generate",checkAuth, async (req, res) => {
         - 5 advanced-level questions
         Each question should be based on:
         - Category: ${category}
-        - Subcategory: ${subcategory}`;
+        - Subcategory: ${subcategory}
+         Format each question as:
+        Q: [Question text]
+        A) [Option 1]
+        B) [Option 2]
+        C) [Option 3]
+        D) [Option 4]
+        Correct: [A/B/C/D]
+        ##`;
 
         const response = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
