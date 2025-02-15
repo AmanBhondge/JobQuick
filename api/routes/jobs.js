@@ -22,36 +22,28 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 //Filter Section with subcategories support
-router.get("/filter", checkAuth, async (req, res) => {
+router.get("/filter",checkAuth ,async (req, res) => {
     try {
         let filter = {};
 
         if (req.query.categories && req.query.categories.trim() !== "") {
             const categoryTitles = req.query.categories.split(",").map(title => title.trim().toLowerCase());
 
-            // Find matching categories
             const categories = await Category.find({
-                $or: [
-                    { title: { $in: categoryTitles.map(title => new RegExp(`^${title}$`, "i")) } },
-                    { "subcategories.title": { $in: categoryTitles.map(title => new RegExp(`^${title}$`, "i")) } }
-                ]
+                title: { $in: categoryTitles.map(title => new RegExp(`^${title}$`, "i")) }
             });
 
             if (categories.length > 0) {
-                const categoryIds = categories.map(cat => cat._id);
-                const subcategoryTitles = categoryTitles.filter(title => 
-                    categories.some(cat => 
-                        cat.subcategories.some(sub => 
-                            sub.title.toLowerCase() === title.toLowerCase()
-                        )
-                    )
-                );
-
-                filter.$or = [
-                    { category: { $in: categoryIds } },
-                    { subcategories: { $in: subcategoryTitles } }
-                ];
+                filter.category = { $in: categories.map(cat => cat._id) };
             }
+        }
+
+        if (req.query.subcategories && req.query.subcategories.trim() !== "") {
+            const subcategoryTitles = req.query.subcategories.split(",").map(title => title.trim().toLowerCase());
+
+            filter.subcategories = { 
+                $in: subcategoryTitles.map(title => new RegExp(`^${title}$`, "i")) 
+            };
         }
 
         if (req.query.title && req.query.title.trim() !== "") {
@@ -72,7 +64,7 @@ router.get("/filter", checkAuth, async (req, res) => {
         const skip = (page - 1) * limit;
 
         const jobList = await Job.find(filter)
-            .populate("category", "title subcategories")
+            .populate("category", "title") 
             .populate("createdBy", "fullName email")
             .sort({ dateCreated: -1 })
             .skip(skip)
