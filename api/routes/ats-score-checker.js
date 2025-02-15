@@ -5,7 +5,7 @@ const pdfParse = require("pdf-parse");
 const axios = require("axios");
 const checkAuth = require("../middleware/check-auth");
 
-const app = express();
+const router = express.Router();
 const upload = multer({
   fileFilter: (req, file, cb) => {
     // Check if the file is a PDF
@@ -17,7 +17,7 @@ const upload = multer({
   }
 });
 
-app.post("/check", upload.single("resume"), checkAuth, async (req, res) => {
+router.post("/check", upload.single("resume"), checkAuth, async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
@@ -61,4 +61,4 @@ app.post("/check", upload.single("resume"), checkAuth, async (req, res) => {
   }
 });
 
-module.exports = app;
+module.exports = router;
