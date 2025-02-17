@@ -76,42 +76,93 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
     try {
         const jobId = req.params.jobId;
 
-        if (!jobId) {
-            return res.status(400).json({ success: false, message: "Job ID is required." });
+        if (!mongoose.Types.ObjectId.isValid(jobId)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Invalid Job ID format." 
+            });
         }
 
-        const startOfWeek = new Date();
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-        startOfWeek.setHours(0, 0, 0, 0);
+        const endDate = new Date();
+        endDate.setHours(23, 59, 59, 999);
 
-        const endOfWeek = new Date();
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        endOfWeek.setHours(23, 59, 59, 999);
+        const startDate = new Date(endDate);
+        startDate.setDate(endDate.getDate() - 6);
+        startDate.setHours(0, 0, 0, 0);
 
         const applicants = await Applicant.aggregate([
             {
                 $match: {
-                    jobId: new mongoose.Types.ObjectId(jobId), 
-                    dateApplied: { $gte: startOfWeek, $lte: endOfWeek } 
+                    jobId: new mongoose.Types.ObjectId(jobId),
+                    dateApplied: { $gte: startDate, $lte: endDate }
                 }
             },
             {
                 $group: {
-                    _id: { $dayOfWeek: "$dateApplied" }, 
-                    count: { $sum: 1 } 
+                    _id: {
+                        $dateToString: { format: "%Y-%m-%d", date: "$dateApplied" }
+                    },
+                    count: { $sum: 1 }
                 }
+            },
+            {
+                $sort: { _id: 1 }
             }
         ]);
 
-        const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const result = Array(7).fill(0).map((_, i) => ({
-            day: daysOfWeek[i],
-            applicants: applicants.find(a => a._id === i + 1)?.count || 0
-        }));
+        const result = [];
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(endDate);
+            date.setDate(date.getDate() - (6 - i));
+            const dateStr = date.toISOString().split('T')[0];
+            
+            const dayData = applicants.find(a => a._id === dateStr);
+            
+            result.push({
+                date: dateStr,
+                day: date.toLocaleDateString('en-US', { weekday: 'long' }),
+                applicants: dayData ? dayData.count : 0
+            });
+        }
 
-        res.status(200).json({ success: true, jobId, data: result });
+        const totalApplicants = result.reduce((sum, day) => sum + day.applicants, 0);
+
+        const dailyAverage = totalApplicants / 7;
+
+        const highestDay = result.reduce((max, day) => 
+            day.applicants > max.applicants ? day : max
+        );
+
+        const lowestDay = result.reduce((min, day) => 
+            day.applicants < min.applicants ? day : min
+        );
+
+        res.status(200).json({
+            success: true,
+            jobId,
+            data: result,
+            statistics: {
+                totalApplicants,
+                dailyAverage: Math.round(dailyAverage * 100) / 100,
+                highestDay: {
+                    day: highestDay.day,
+                    date: highestDay.date,
+                    count: highestDay.applicants
+                },
+                lowestDay: {
+                    day: lowestDay.day,
+                    date: lowestDay.date,
+                    count: lowestDay.applicants
+                }
+            }
+        });
+
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error("Error fetching graph data:", error);
+        res.status(500).json({ 
+            success: false, 
+            error: "Internal server error" 
+        });
     }
 });
 
