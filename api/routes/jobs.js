@@ -140,6 +140,30 @@ router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
     }
 });
 
+router.get("/table/:hosterId",checkAuth , async (req, res) => {
+    try {
+        const { hosterId } = req.params;
+
+        const jobs = await Job.find({ createdBy: hosterId }).select("jobType title companyName");
+
+        if (!jobs.length) {
+            return res.status(404).json({ error: "No jobs found for this user." });
+        }
+
+        const jobIds = jobs.map(job => job._id); 
+
+        const applicants = await Applicant.find({ jobId: { $in: jobIds } })
+            .populate("applicantId", "fullName phoneNumber")
+            .populate("jobId", "title companyName"); 
+
+        res.json({ success: true, applicants });
+
+    } catch (error) {
+        console.error("Error fetching applicants:", error.message);
+        res.status(500).json({ error: "Internal server error. Please try again." });
+    }
+});
+
 
 router.get("/:id", checkAuth, async (req, res) => {
     try {

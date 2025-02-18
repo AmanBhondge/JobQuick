@@ -38,14 +38,8 @@ const storage = multer.diskStorage({
 
 const uploadOptions = multer({ storage: storage });
 
-router.get('/all', async (req, res) => {
-    try {
-        const users = await HostUser.find().select('-password');
-        res.status(200).json(users);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+
+
 
 router.get('/:id',  async (req, res) => {
     try {
