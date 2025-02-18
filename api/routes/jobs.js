@@ -154,7 +154,7 @@ router.get("/table/:hosterId",checkAuth , async (req, res) => {
 
         const applicants = await Applicant.find({ jobId: { $in: jobIds } })
             .populate("applicantId", "fullName phoneNumber")
-            .populate("jobId", "title companyName"); 
+            .populate("jobId", "title companyName jobType"); 
 
         res.json({ success: true, applicants });
 
