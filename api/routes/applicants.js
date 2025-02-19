@@ -33,27 +33,46 @@ const upload = multer({
 });
 
 // GET all applicants
-router.get('/',checkAuth ,  async (req, res) => {
+router.get('/', checkAuth, async (req, res) => {
     try {
         let filter = {};
+        const { jobId, applicantId, shortListed, page = 1, limit = 10 } = req.query; 
 
-        if (req.query.jobId && mongoose.Types.ObjectId.isValid(req.query.jobId)) {
-            filter.jobId = req.query.jobId;
+        if (jobId && mongoose.Types.ObjectId.isValid(jobId)) {
+            filter.jobId = jobId;
         }
 
-        if (req.query.applicantId && mongoose.Types.ObjectId.isValid(req.query.applicantId)) {
-            filter.applicantId = req.query.applicantId;
+        if (applicantId && mongoose.Types.ObjectId.isValid(applicantId)) {
+            filter.applicantId = applicantId;
         }
 
-        if (req.query.shortListed !== undefined) {
-            filter.shortListed = req.query.shortListed === 'true'; 
+        if (shortListed !== undefined) {
+            filter.shortListed = shortListed === 'true'; 
         }
+
+        const totalCount = await Applicant.countDocuments(filter);
+        const totalPages = Math.ceil(totalCount / limit);
+        const skip = (page - 1) * limit;
 
         const applicants = await Applicant.find(filter)
             .populate('jobId')
-            .populate('applicantId');
+            .populate('applicantId')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
 
-        res.status(200).json(applicants);
+        res.status(200).json({
+            success: true,
+            applicants,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages,
+                totalItems: totalCount,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1
+            }
+        });
+
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
