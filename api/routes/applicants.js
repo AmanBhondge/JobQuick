@@ -36,7 +36,7 @@ const upload = multer({
 router.get('/', checkAuth, async (req, res) => {
     try {
         let filter = {};
-        const { jobId, applicantId, shortListed, page = 1, limit = 10 } = req.query; 
+        const { jobId, applicantId, shortListed, page = 1, limit = 10, search } = req.query;
 
         if (jobId && mongoose.Types.ObjectId.isValid(jobId)) {
             filter.jobId = jobId;
@@ -47,7 +47,16 @@ router.get('/', checkAuth, async (req, res) => {
         }
 
         if (shortListed !== undefined) {
-            filter.shortListed = shortListed === 'true'; 
+            filter.shortListed = shortListed === 'true';
+        }
+
+        if (search) {
+            filter.$or = [
+                { "jobId.title": { $regex: search, $options: "i" } },
+                { "jobId.companyName": { $regex: search, $options: "i" } }, 
+                { "applicantId.fullName": { $regex: search, $options: "i" } },
+                { "applicantId.phoneNumber": { $regex: search, $options: "i" } }
+            ];
         }
 
         const totalCount = await Applicant.countDocuments(filter);
@@ -55,9 +64,9 @@ router.get('/', checkAuth, async (req, res) => {
         const skip = (page - 1) * limit;
 
         const applicants = await Applicant.find(filter)
-            .populate('jobId')
-            .populate('applicantId')
-            .sort({ createdAt: -1 })
+            .populate('jobId', 'title companyName')
+            .populate('applicantId', 'fullName phoneNumber')
+            .sort({ createdAt: -1 })  
             .skip(skip)
             .limit(parseInt(limit));
 
@@ -79,7 +88,7 @@ router.get('/', checkAuth, async (req, res) => {
 });
 
 // GET a single applicant by ID
-router.get('/:id',checkAuth , async (req, res) => {
+router.get('/:id', checkAuth, async (req, res) => {
     try {
         const applicant = await Applicant.findById(req.params.id).populate('jobId').populate('applicantId');
         if (!applicant) {
@@ -96,9 +105,9 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
         const jobId = req.params.jobId;
 
         if (!mongoose.Types.ObjectId.isValid(jobId)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Invalid Job ID format." 
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Job ID format."
             });
         }
 
@@ -134,9 +143,9 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
             const date = new Date(endDate);
             date.setDate(date.getDate() - (6 - i));
             const dateStr = date.toISOString().split('T')[0];
-            
+
             const dayData = applicants.find(a => a._id === dateStr);
-            
+
             result.push({
                 date: dateStr,
                 day: date.toLocaleDateString('en-US', { weekday: 'long' }),
@@ -148,11 +157,11 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
 
         const dailyAverage = totalApplicants / 7;
 
-        const highestDay = result.reduce((max, day) => 
+        const highestDay = result.reduce((max, day) =>
             day.applicants > max.applicants ? day : max
         );
 
-        const lowestDay = result.reduce((min, day) => 
+        const lowestDay = result.reduce((min, day) =>
             day.applicants < min.applicants ? day : min
         );
 
@@ -178,9 +187,9 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching graph data:", error);
-        res.status(500).json({ 
-            success: false, 
-            error: "Internal server error" 
+        res.status(500).json({
+            success: false,
+            error: "Internal server error"
         });
     }
 });
@@ -208,7 +217,7 @@ router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
             shortListed: req.body.shortListed || false
         };
 
-         // if (req.file) {
+        // if (req.file) {
         //     applicantData.resume = `/resumes/${req.file.filename}`;
         // }
 
@@ -221,7 +230,7 @@ router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
     }
 });
 
-router.put('/shortlisted/:id',checkAuth , async (req, res) => {
+router.put('/shortlisted/:id', checkAuth, async (req, res) => {
     try {
         const { shortListed } = req.body;
 
@@ -246,7 +255,7 @@ router.put('/shortlisted/:id',checkAuth , async (req, res) => {
 });
 
 // DELETE an applicant by ID
-router.delete('/:id',checkAuth , async (req, res) => {
+router.delete('/:id', checkAuth, async (req, res) => {
     try {
         const applicant = await Applicant.findById(req.params.id);
         if (!applicant) {
