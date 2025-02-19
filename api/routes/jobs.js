@@ -46,9 +46,14 @@ router.get("/filter", checkAuth, async (req, res) => {
             };
         }
 
-        if (req.query.title && req.query.title.trim() !== "") {
-            filter.title = { $regex: new RegExp(req.query.title.trim(), "i") };
+        if (req.query.search && req.query.search.trim() !== "") {
+            const searchRegex = new RegExp(req.query.search.trim(), "i");
+            filter.$or = [
+                { title: searchRegex },         
+                { companyName: searchRegex }    
+            ];
         }
+
         if (req.query.jobType && req.query.jobType.trim() !== "") {
             filter.jobType = { $regex: new RegExp(req.query.jobType.trim(), "i") };
         }
@@ -57,9 +62,6 @@ router.get("/filter", checkAuth, async (req, res) => {
         }
         if (req.query.experience && req.query.experience.trim() !== "") {
             filter.experience = { $regex: new RegExp(req.query.experience.trim(), "i") };
-        }
-        if (req.query.companyName && req.query.companyName.trim() !== "") {
-            filter.companyName = { $regex: new RegExp(req.query.companyName.trim(), "i") };
         }
 
         const page = parseInt(req.query.page) || 1;
