@@ -146,7 +146,14 @@ router.get("/table/:hosterId", checkAuth, async (req, res) => {
         const { page = 1, limit = 10, search, shortlisted } = req.query; 
         const skip = (page - 1) * limit;
 
-        const jobs = await Job.find({ createdBy: hosterId }).select("_id title companyName jobType");
+        let jobFilter = { createdBy: hosterId };
+        if (search) {
+            jobFilter.$or = [
+                { title: { $regex: search, $options: "i" } },         
+                { companyName: { $regex: search, $options: "i" } }   
+            ];
+        }
+        const jobs = await Job.find(jobFilter).select("_id title companyName jobType");
 
         if (!jobs.length) {
             return res.status(404).json({ error: "No jobs found for this user." });
@@ -154,18 +161,20 @@ router.get("/table/:hosterId", checkAuth, async (req, res) => {
 
         const jobIds = jobs.map(job => job._id);
 
-        const filterQuery = { jobId: { $in: jobIds } };
+        let applicantFilter = {};
+        if (search) {
+            const applicants = await SeekUser.find({ fullName: { $regex: search, $options: "i" } }).select("_id");
+            const applicantIds = applicants.map(a => a._id);
+            applicantFilter.applicantId = { $in: applicantIds };
+        }
+
+        const filterQuery = { 
+            jobId: { $in: jobIds }, 
+            ...applicantFilter 
+        };
 
         if (shortlisted !== undefined) {
             filterQuery.shortListed = shortlisted === 'true';
-        }
-
-        if (search) {
-            filterQuery.$or = [
-                { "jobId.title": { $regex: search, $options: "i" } },         
-                { "jobId.companyName": { $regex: search, $options: "i" } },   
-                { "applicantId.fullName": { $regex: search, $options: "i" } }
-            ];
         }
 
         const totalCount = await Applicant.countDocuments(filterQuery);
