@@ -143,11 +143,10 @@ router.get("/createdby/:creatorId", checkAuth, async (req, res) => {
 router.get("/table/:hosterId", checkAuth, async (req, res) => {
     try {
         const { hosterId } = req.params;
-        const { page = 1, shortlisted } = req.query;
-        const limit = 10;
+        const { page = 1, limit = 10, search, shortlisted } = req.query; 
         const skip = (page - 1) * limit;
 
-        const jobs = await Job.find({ createdBy: hosterId }).select("jobType title companyName");
+        const jobs = await Job.find({ createdBy: hosterId }).select("_id title companyName jobType");
 
         if (!jobs.length) {
             return res.status(404).json({ error: "No jobs found for this user." });
@@ -156,8 +155,17 @@ router.get("/table/:hosterId", checkAuth, async (req, res) => {
         const jobIds = jobs.map(job => job._id);
 
         const filterQuery = { jobId: { $in: jobIds } };
-        if (shortlisted === 'true') {
-            filterQuery.isShortlisted = true;
+
+        if (shortlisted !== undefined) {
+            filterQuery.shortListed = shortlisted === 'true';
+        }
+
+        if (search) {
+            filterQuery.$or = [
+                { "jobId.title": { $regex: search, $options: "i" } },         
+                { "jobId.companyName": { $regex: search, $options: "i" } },   
+                { "applicantId.fullName": { $regex: search, $options: "i" } }
+            ];
         }
 
         const totalCount = await Applicant.countDocuments(filterQuery);
@@ -166,9 +174,9 @@ router.get("/table/:hosterId", checkAuth, async (req, res) => {
         const applicants = await Applicant.find(filterQuery)
             .populate("applicantId", "fullName phoneNumber")
             .populate("jobId", "title companyName jobType")
+            .sort({ createdAt: -1 }) 
             .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 });
+            .limit(parseInt(limit));
 
         res.json({
             success: true,
@@ -187,6 +195,7 @@ router.get("/table/:hosterId", checkAuth, async (req, res) => {
         res.status(500).json({ error: "Internal server error. Please try again." });
     }
 });
+
 
 router.get("/:id", checkAuth, async (req, res) => {
     try {
