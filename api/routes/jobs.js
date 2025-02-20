@@ -301,6 +301,29 @@ router.post("/", checkAuth, upload.single("profileImg"), async (req, res) => {
     }
 });
 
+router.put('/update/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid job ID' });
+        }
+
+        const existingJob = await Job.findById(id);
+        if (!existingJob) {
+            return res.status(404).json({ message: 'Job not found' });
+        }
+
+        const updatedData = { ...existingJob.toObject(), ...req.body };
+
+        const updatedJob = await Job.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
+
+        res.status(200).json(updatedJob);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
 router.delete("/:id", checkAuth, async (req, res) => {
     try {
         const jobId = req.params.id;
