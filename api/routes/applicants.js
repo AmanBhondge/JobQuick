@@ -79,7 +79,7 @@ router.get('/', checkAuth, async (req, res) => {
 });
 
 // GET a single applicant by ID
-router.get('/:id',checkAuth , async (req, res) => {
+router.get('/details/:id',checkAuth , async (req, res) => {
     try {
         const applicant = await Applicant.findById(req.params.id).populate('jobId').populate('applicantId');
         if (!applicant) {
@@ -185,7 +185,7 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
     }
 });
 //checks applied or not
-router.get('/check',checkAuth , async (req, res) => {
+router.get('/check', async (req, res) => {
     try {
         const { jobId, applicantId } = req.query;
 
