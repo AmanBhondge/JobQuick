@@ -185,7 +185,7 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
     }
 });
 //checks applied or not
-router.get('/check', async (req, res) => {
+router.get('/check',checkAuth , async (req, res) => {
     try {
         const { jobId, applicantId } = req.query;
 
