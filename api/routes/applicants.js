@@ -32,7 +32,7 @@ const upload = multer({
     }
 });
 
-// GET all applicants
+// Filter Applicants
 router.get('/', checkAuth, async (req, res) => {
     try {
         let filter = {};
@@ -182,6 +182,22 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
             success: false, 
             error: "Internal server error" 
         });
+    }
+});
+//checks applied or not
+router.get('/check', async (req, res) => {
+    try {
+        const { jobId, applicantId } = req.query;
+
+        if (!mongoose.Types.ObjectId.isValid(jobId) || !mongoose.Types.ObjectId.isValid(applicantId)) {
+            return res.status(400).json({ message: 'Invalid jobId or applicantId' });
+        }
+
+        const existingApplication = await Applicant.findOne({ jobId, applicantId });
+
+        res.status(200).json({ applied: !!existingApplication });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
