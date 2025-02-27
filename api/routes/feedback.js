@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Feedback = require('../model/feedback');
+const checkAuth = require('../middleware/check-auth');
 
-router.get('/', async (req, res) => {
+router.get('/',checkAuth, async (req, res) => {
     try {
         const feedbackList = await Feedback.find(); 
         res.status(200).json({ success: true, data: feedbackList });
@@ -11,7 +12,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
+router.post('/',checkAuth, async (req, res) => {
     try {
         const feedback = new Feedback(req.body);
         await feedback.save();
