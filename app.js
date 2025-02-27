@@ -14,6 +14,8 @@ const jobRoute = require('./api/routes/jobs');
 const applicantRoute = require('./api/routes/applicants');
 const mockTestRoute = require('./api/routes/mock-test');
 const feedbackRoute = require('./api/routes/feedback');
+const topCompanyRoute = require('./api/routes/top-company');
+const landingPageRoute = require('./api/routes/landing-page');
 
 const { MONGO_URI } = require('./config');
 
@@ -45,7 +47,8 @@ app.use('/job', jobRoute);
 app.use('/applicants', applicantRoute);
 app.use('/mocktest', mockTestRoute);
 app.use('/feedback', feedbackRoute);
-
+app.use('/topcompany', topCompanyRoute);
+app.use('/landingpage', landingPageRoute);
 
 app.use((req, res, next) => {
     res.status(404).json({ message: "❌ Bad Request - Route Not Found" });
