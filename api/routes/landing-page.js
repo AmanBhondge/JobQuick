@@ -12,7 +12,8 @@ router.get('/', checkAuth, async (req, res) => {
         const jobList = await Job.find()
             .sort({ dateCreated: -1 })
             .limit(10)
-            .select('title companyName category jobType experience location dateCreated');
+            .populate('category', 'title')
+            .select('title companyName category jobType experience location dateCreated minPackage maxPackage');
 
         const topcompanyList = await TopCompany.find();
 
@@ -38,7 +39,5 @@ router.get('/', checkAuth, async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 });
-
-
 
 module.exports = router;
