@@ -4,7 +4,6 @@ const Feedback = require('../model/feedback');
 const Job = require('../model/job');
 const TopCompany = require('../model/top-company');
 const Category = require('../model/category');
-const mongoose = require('mongoose');
 const checkAuth = require('../middleware/check-auth');
 
 router.get('/', checkAuth, async (req, res) => {
@@ -17,12 +16,12 @@ router.get('/', checkAuth, async (req, res) => {
 
         const topcompanyList = await TopCompany.find();
 
-        const categories = await Category.find();
+        const categories = await Category.find().select('title'); 
         const categoryList = await Promise.all(categories.map(async (category) => {
             const jobCount = await Job.countDocuments({ category: category._id });
-            return {
-                ...category._doc,  
-                jobCount           
+            return {   
+                title: category.title, 
+                jobCount             
             };
         }));
 
@@ -39,6 +38,7 @@ router.get('/', checkAuth, async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 });
+
 
 
 module.exports = router;
