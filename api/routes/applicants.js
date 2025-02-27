@@ -184,6 +184,7 @@ router.get("/graph/:jobId", checkAuth, async (req, res) => {
         });
     }
 });
+
 //checks applied or not
 router.get('/check', async (req, res) => {
     try {
@@ -200,7 +201,6 @@ router.get('/check', async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
-
 
 router.post('/',/*upload.single('resume'),*/ checkAuth, async (req, res) => {
     try {

@@ -13,6 +13,7 @@ const categoriesRoute = require('./api/routes/categories');
 const jobRoute = require('./api/routes/jobs');
 const applicantRoute = require('./api/routes/applicants');
 const mockTestRoute = require('./api/routes/mock-test');
+const feedbackRoute = require('./api/routes/feedback');
 
 const { MONGO_URI } = require('./config');
 
@@ -43,6 +44,7 @@ app.use('/categories', categoriesRoute);
 app.use('/job', jobRoute);
 app.use('/applicants', applicantRoute);
 app.use('/mocktest', mockTestRoute);
+app.use('/feedback', feedbackRoute);
 
 
 app.use((req, res, next) => {
