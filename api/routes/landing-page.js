@@ -8,7 +8,9 @@ const checkAuth = require('../middleware/check-auth');
 
 router.get('/', checkAuth, async (req, res) => {
     try {
-        const feedbackList = await Feedback.find();
+        const feedbackList = await Feedback.find()
+            .sort({ date: -1 })
+            .limit(12);
         const jobList = await Job.find()
             .sort({ dateCreated: -1 })
             .limit(10)
@@ -17,23 +19,23 @@ router.get('/', checkAuth, async (req, res) => {
 
         const topcompanyList = await TopCompany.find();
 
-        const categories = await Category.find().select('title'); 
+        const categories = await Category.find().select('title');
         const categoryList = await Promise.all(categories.map(async (category) => {
             const jobCount = await Job.countDocuments({ category: category._id });
-            return {   
-                title: category.title, 
-                jobCount             
+            return {
+                title: category.title,
+                jobCount
             };
         }));
 
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             data: {
-                feedbackList, 
-                jobList, 
-                topcompanyList, 
+                feedbackList,
+                jobList,
+                topcompanyList,
                 categoryList
-            } 
+            }
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
