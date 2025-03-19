@@ -38,9 +38,6 @@ const storage = multer.diskStorage({
 
 const uploadOptions = multer({ storage: storage });
 
-
-
-
 router.get('/:id',  async (req, res) => {
     try {
         const user = await HostUser.findById(req.params.id).select('-password');
@@ -136,7 +133,6 @@ router.put('/update/:id', uploadOptions.single('image'), checkAuth, async (req, 
         res.status(500).json({ error: err.message });
     }
 });
-
 
 router.delete('/delete/:id', checkAuth, async (req, res) => {
     try {

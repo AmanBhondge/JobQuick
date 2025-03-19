@@ -54,7 +54,6 @@ router.get('/:id', checkAuth, async (req, res) => {
     }
 });
 
-
 // ✅ Signup Route 
 router.post('/signup', uploadProfilePic.single('profileImg'), uploadResume.single('resume'), async (req, res) => {
     try {
